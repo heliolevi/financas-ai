@@ -125,13 +125,16 @@ async function loadTransactions() {
         });
         const data = await res.json();
         
+        let total = 0;
         transactionList.innerHTML = '';
         if (data.length === 0) {
             transactionList.innerHTML = '<p class="empty-msg">Nenhuma transação registrada.</p>';
+            document.getElementById('total-amount').innerText = 'R$ 0,00';
             return;
         }
 
         data.forEach(t => {
+            total += t.amount;
             const item = document.createElement('div');
             item.className = 'transaction-item';
             item.innerHTML = `
@@ -146,6 +149,8 @@ async function loadTransactions() {
             `;
             transactionList.appendChild(item);
         });
+
+        document.getElementById('total-amount').innerText = `R$ ${total.toFixed(2)}`;
     } catch (err) {
         console.error(err);
     }

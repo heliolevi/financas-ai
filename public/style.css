@@ -203,7 +203,27 @@ header {
 
 .entry-card h2, .list-card h2, .ai-card h2 {
     font-size: 1.25rem;
+    margin-bottom: 0;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
+}
+
+.total-badge {
+    background: var(--glass-bg);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 700;
+    border: 1px solid var(--primary);
+    color: var(--text-main);
+}
+
+#total-amount {
+    color: #10b981; /* Green for total */
 }
 
 .scroll-area {
