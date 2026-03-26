@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanças AI - Seu Assistente Pessoal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Auth Section -->
+        <section id="auth-section" class="active">
+            <div class="glass-card auth-container">
+                <h1>Bem-vindo ao <span class="gradient-text">Finanças AI</span></h1>
+                <p>Gerencie seu dinheiro com inteligência.</p>
+                
+                <div class="tabs">
+                    <button id="login-tab" class="active">Login</button>
+                    <button id="register-tab">Registrar</button>
+                </div>
+
+                <form id="auth-form">
+                    <div class="input-group">
+                        <label for="username">Usuário</label>
+                        <input type="text" id="username" placeholder="Seu nome" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="auth-btn" class="main-btn">Entrar</button>
+                </form>
+                <div id="auth-message" class="message"></div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section">
+            <header>
+                <div class="logo">Finanças <span class="gradient-text">AI</span></div>
+                <div class="user-info">
+                    <span id="user-display">Usuário</span>
+                    <button id="logout-btn">Sair</button>
+                </div>
+            </header>
+
+            <main class="dashboard-grid">
+                <!-- Left: Transactions & Entry -->
+                <div class="left-panel">
+                    <div class="glass-card entry-card">
+                        <h2>Nova Transação</h2>
+                        <form id="transaction-form">
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Valor (R$)</label>
+                                    <input type="number" id="t-amount" placeholder="0.00" step="0.01" required>
+                                </div>
+                                <div class="input-group">
+                                    <label>Data</label>
+                                    <input type="date" id="t-date" required>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Categoria</label>
+                                <select id="t-category" required>
+                                    <option value="Alimentação">Alimentação</option>
+                                    <option value="Transporte">Transporte</option>
+                                    <option value="Lazer">Lazer</option>
+                                    <option value="Moradia">Moradia</option>
+                                    <option value="Saúde">Saúde</option>
+                                    <option value="Educação">Educação</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Forma de Pagamento</label>
+                                <select id="t-payment" required>
+                                    <option value="Dinheiro">Dinheiro</option>
+                                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                    <option value="Cartão de Débito">Cartão de Débito</option>
+                                    <option value="Pix">Pix</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Descrição</label>
+                                <input type="text" id="t-description" placeholder="Ex: Almoço no shopping">
+                            </div>
+                            <button type="submit" class="main-btn">Registrar Gasto</button>
+                        </form>
+                    </div>
+
+                    <div class="glass-card list-card">
+                        <h2>Histórico</h2>
+                        <div id="transaction-list" class="scroll-area">
+                            <!-- Transactions will be loaded here -->
+                            <p class="empty-msg">Nenhuma transação registrada.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: AI Chat -->
+                <div class="right-panel">
+                    <div class="glass-card ai-card">
+                        <h2>Personal AI <span class="ai-badge">Groq</span></h2>
+                        <div id="chat-messages" class="scroll-area">
+                            <div class="ai-msg">Olá! Sou sua IA financeira. Como posso ajudar você hoje?</div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="ai-input" placeholder="Pergunte algo (ex: Como gastei este mês?)">
+                            <button id="send-btn">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
