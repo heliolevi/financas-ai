@@ -12,6 +12,9 @@ const registerTab = document.getElementById('register-tab');
 const userDisplay = document.getElementById('user-display');
 const logoutBtn = document.getElementById('logout-btn');
 const upgradeBtn = document.getElementById('upgrade-btn');
+const proFeaturesBar = document.getElementById('pro-features-bar');
+const exportPdfBtn = document.getElementById('export-pdf-btn');
+const exportExcelBtn = document.getElementById('export-excel-btn');
 const transactionForm = document.getElementById('transaction-form');
 const transactionList = document.getElementById('transaction-list');
 const aiInput = document.getElementById('ai-input');
@@ -98,14 +101,46 @@ function showDashboard() {
  */
 async function updateSubscriptionUI() {
     const status = localStorage.getItem('subscriptionStatus');
+    const username = localStorage.getItem('username');
     
-    if (status === 'active') {
+    // Bypass para o criador
+    const isPro = status === 'active' || username === 'helio.vieira' || username === 'admin';
+
+    if (isPro) {
         upgradeBtn.style.display = 'none';
+        proFeaturesBar.style.display = 'block';
         userDisplay.innerHTML = `${USERNAME} <span class="pro-badge">PRO</span>`;
     } else {
         upgradeBtn.style.display = 'block';
+        proFeaturesBar.style.display = 'none';
     }
 }
+
+/**
+ * Funções de Exportação
+ */
+async function downloadReport(type) {
+    try {
+        const res = await fetch(`${API_URL}/reports/${type}`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        if (res.status === 403) return alert('Recurso exclusivo para assinantes Lumi Pro 💎');
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio_lumi.${type === 'pdf' ? 'pdf' : 'xlsx'}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Erro ao baixar relatório.');
+    }
+}
+
+exportPdfBtn.addEventListener('click', () => downloadReport('pdf'));
+exportExcelBtn.addEventListener('click', () => downloadReport('excel'));
 
 /**
  * Inicia o fluxo de pagamento do Stripe.
