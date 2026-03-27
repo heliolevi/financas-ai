@@ -15,7 +15,7 @@ const createCheckoutSession = async (req, res) => {
         let customerId = user.stripeCustomerId;
         if (!customerId) {
             const customer = await stripe.customers.create({
-                username: user.username,
+                name: user.username,
                 metadata: { userId: user._id.toString() }
             });
             customerId = customer.id;
