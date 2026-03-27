@@ -35,6 +35,16 @@ function createTables() {
             date TEXT,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )`);
+
+        // Messages table (Memory)
+        db.run(`CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            role TEXT,
+            content TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )`);
     });
 }
 

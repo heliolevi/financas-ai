@@ -194,6 +194,9 @@ async function sendToAI() {
         
         if (res.ok) {
             addChatMessage(data.response, 'ai');
+            if (data.transactionAdded) {
+                loadTransactions();
+            }
         } else {
             addChatMessage('Erro ao obter resposta da IA. Verifique sua chave API do Groq.', 'ai');
         }
