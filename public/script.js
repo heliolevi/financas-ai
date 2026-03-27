@@ -11,6 +11,7 @@ const loginTab = document.getElementById('login-tab');
 const registerTab = document.getElementById('register-tab');
 const userDisplay = document.getElementById('user-display');
 const logoutBtn = document.getElementById('logout-btn');
+const upgradeBtn = document.getElementById('upgrade-btn');
 const transactionForm = document.getElementById('transaction-form');
 const transactionList = document.getElementById('transaction-list');
 const aiInput = document.getElementById('ai-input');
@@ -67,6 +68,7 @@ authForm.addEventListener('submit', async (e) => {
                 USERNAME = data.username;
                 localStorage.setItem('token', TOKEN);
                 localStorage.setItem('username', USERNAME);
+                localStorage.setItem('subscriptionStatus', data.subscriptionStatus);
                 showDashboard();
             } else {
                 alert('Conta criada! Agora faça o login.');
@@ -87,7 +89,58 @@ function showDashboard() {
     authSection.classList.remove('active');
     dashboardSection.classList.add('active');
     userDisplay.innerText = USERNAME;
+    updateSubscriptionUI();
     loadTransactions();
+}
+
+/**
+ * Atualiza a interface baseado no status da assinatura.
+ */
+async function updateSubscriptionUI() {
+    const status = localStorage.getItem('subscriptionStatus');
+    
+    if (status === 'active') {
+        upgradeBtn.style.display = 'none';
+        userDisplay.innerHTML = `${USERNAME} <span class="pro-badge">PRO</span>`;
+    } else {
+        upgradeBtn.style.display = 'block';
+    }
+}
+
+/**
+ * Inicia o fluxo de pagamento do Stripe.
+ */
+upgradeBtn.addEventListener('click', async () => {
+    try {
+        upgradeBtn.innerText = 'Processando...';
+        const res = await fetch(API_URL + '/payments/create-checkout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+        if (data.url) {
+            window.location.href = data.url; // Redireciona para o Stripe
+        } else {
+            alert('Não foi possível iniciar o pagamento.');
+            upgradeBtn.innerText = 'Assinar Lumi Pro 🚀';
+        }
+    } catch (err) {
+        alert('Erro ao conectar com o serviço de pagamentos.');
+    }
+});
+
+// Verifica se voltou de um pagamento bem-sucedido
+if (window.location.search.includes('payment=success')) {
+    alert('Parabéns! Agora você é Lumi PRO! 🚀');
+    // Força a atualização do status
+    fetch(API_URL + '/auth/me', {
+        headers: { 'Authorization': `Bearer ${TOKEN}` }
+    }).then(res => res.json()).then(user => {
+        localStorage.setItem('subscriptionStatus', user.subscriptionStatus);
+        updateSubscriptionUI();
+        // Limpa a URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    });
 }
 
 /**

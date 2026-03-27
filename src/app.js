@@ -8,13 +8,18 @@ require('./config/database'); // Inicializa a conexão com o MongoDB
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 const aiRoutes = require('./routes/ai');
+const paymentRoutes = require('./routes/payment');
 
 // Configuração do servidor Express
 const app = express();
 
-// Middleware de segurança e parsing
-app.use(cors()); // Permite requisições de diferentes origens
-app.use(bodyParser.json()); // Converte o corpo da requisição para JSON
+// Middleware de segurança - NOTA: Webhook do Stripe precisa do raw body ANTES do json()
+app.use(cors()); 
+
+// Rota do Webhook do Stripe (deve vir antes do express.json() global)
+app.use('/api/payments', paymentRoutes);
+
+app.use(express.json()); // Converte o corpo das outras requisições para JSON
 
 // Serve os arquivos estáticos da pasta 'public' (HTML, CSS, JS do frontend)
 app.use(express.static(path.join(__dirname, '../public')));

@@ -98,10 +98,22 @@ const deleteAllTransactions = async (userId) => {
 // --- FUNÇÃO PRINCIPAL ---
 
 const analyzeFinances = async (req, res) => {
-    const userId = req.userId;
     const { message } = req.body;
+    const userId = req.userId;
 
     try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+        // BLOQUEIO: Se o usuário não for pagante ('active'), a Lumi não responde lógica financeira profunda
+        if (user.subscriptionStatus !== 'active') {
+            return res.status(200).json({ 
+                response: "Olá! Para continuar analisando suas finanças com a minha inteligência completa, você precisa ser um assinate **Lumi Pro**. 🚀\n\nClique no botão **'Assinar Lumi Pro'** para liberar seu acesso agora por apenas R$ 20,00/mês!",
+                transactionAdded: false,
+                requireSubscription: true 
+            });
+        }
+
         // 1. Salva a pergunta do usuário no banco
         await saveMessage(userId, 'user', message);
 

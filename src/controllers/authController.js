@@ -60,10 +60,27 @@ const login = async (req, res) => {
             expiresIn: 86400 
         });
 
-        res.status(200).json({ auth: true, token, username: user.username });
+        res.status(200).json({ 
+            auth: true, 
+            token, 
+            username: user.username,
+            subscriptionStatus: user.subscriptionStatus
+        });
     } catch (err) {
         res.status(500).json({ message: 'Erro no servidor ao fazer login' });
     }
 };
 
-module.exports = { register, login };
+/**
+ * Retorna os dados do usuário logado (útil para atualizar o status Pro).
+ */
+const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.userId).select('-password');
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao buscar dados do usuário' });
+    }
+};
+
+module.exports = { register, login, getMe };
