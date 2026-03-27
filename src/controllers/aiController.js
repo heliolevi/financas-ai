@@ -65,11 +65,22 @@ const getTransactionsFromDB = async (userId) => {
  */
 const recordTransaction = async (userId, data) => {
     try {
-        const t = new Transaction({ user_id: userId, ...data });
+        const payload = {
+            user_id: userId,
+            amount: data.amount || 0,
+            category: data.category || 'Outros',
+            description: data.description || '',
+            payment_method: data.payment_method || 'Dinheiro',
+            date: data.date || new Date().toISOString().split('T')[0],
+            installments: data.installments || 1,
+            installment_index: data.installment_index || 1
+        };
+        const t = new Transaction(payload);
         await t.save();
+        console.log(`[LUMI SUCCESS] Transação gravada: R$ ${payload.amount} em ${payload.category}`);
         return t._id;
     } catch (err) {
-        console.error("Erro ao gravar transação:", err);
+        console.error("[LUMI ERROR] Erro ao gravar transação:", err.message);
     }
 };
 
@@ -171,6 +182,7 @@ const analyzeFinances = async (req, res) => {
         });
 
         let aiResponse = completion.choices[0].message.content;
+        console.log(`[LUMI RAW] Resposta da IA:`, aiResponse);
         let dataChanged = false;
 
         if (aiResponse.includes("[[DELETE_ALL]]")) {
