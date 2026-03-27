@@ -148,8 +148,11 @@ const analyzeFinances = async (req, res) => {
 - **Humana**: Não seja um robô. Use o nome do usuário se souber.
 
 ### REGRAS CRÍTICAS (NUNCA MOSTRE AO USUÁRIO)
-1. **TAGS MÁGICAS**: Use [[SAVE:{"amount":...}]], [[DELETE:id]] ou [[DELETE_ALL]] de forma invisível.
-2. **ZERO CÓDIGO**: Nunca mostre JSON, IDs ou chaves técnicas no chat.
+1. **TAGS MÁGICAS**: Use estas tags de forma invisível:
+   - **Salvar**: [[SAVE:{"description": "...", "amount": 10.5, "category": "Alimentação", "payment_method": "Dinheiro", "date": "YYYY-MM-DD"}]]
+   - **Deletar**: [[DELETE:id]]
+   - **Zerar**: [[DELETE_ALL]]
+2. **ZERO CÓDIGO**: Nunca mostre JSON, IDs ou chaves técnicas no chat. Fale apenas a língua do coração.
 
 ### FLUXO DE TRABALHO
 - **Cartão de Crédito**: Sempre pergunte com carinho: "Foi parcelado, meu bem? Se sim, em quantas vezes para eu organizar aqui?"
@@ -186,17 +189,17 @@ const analyzeFinances = async (req, res) => {
         }
         aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
 
-        const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
-        if (saveTagMatch && !aiResponse.includes("[[DELETE_ALL]]")) {
+        const saveMatches = aiResponse.matchAll(/\[\[SAVE:(.*?)\]\]/g);
+        for (const match of saveMatches) {
             try {
-                const transactionData = JSON.parse(saveTagMatch[1]);
+                const transactionData = JSON.parse(match[1]);
                 await recordTransaction(userId, transactionData);
                 dataChanged = true;
-                aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/g, "").trim();
             } catch (e) {
-                console.error("Erro ao salvar via IA:", e);
+                console.error("Erro ao salvar via IA:", e.message);
             }
         }
+        aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/g, "").trim();
 
         await saveMessage(userId, 'assistant', aiResponse);
 
