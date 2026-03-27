@@ -124,7 +124,11 @@ async function downloadReport(type) {
         const res = await fetch(`${API_URL}/reports/${type}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
-        if (res.status === 403) return alert('Recurso exclusivo para assinantes Lumi Pro 💎');
+        
+        if (!res.ok) {
+            const data = await res.json();
+            return alert(data.message || 'Erro ao gerar relatório.');
+        }
         
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);

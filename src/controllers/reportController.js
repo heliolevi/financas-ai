@@ -44,11 +44,11 @@ exports.exportPDF = async (req, res) => {
             headStyles: { fillColor: [41, 128, 185] }
         });
 
-        const pdfBuffer = doc.output('arraybuffer');
+        const pdfBinary = doc.output();
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=relatorio_lumi.pdf');
-        res.send(Buffer.from(pdfBuffer));
+        res.send(Buffer.from(pdfBinary, 'binary'));
 
     } catch (err) {
         console.error('Erro ao gerar PDF:', err);
