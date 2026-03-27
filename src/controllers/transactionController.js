@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
  * Adiciona uma nova transação financeira vinculada ao usuário logado.
  */
 const addTransaction = async (req, res) => {
-    const { amount, category, description, payment_method, date } = req.body;
+    const { amount, category, description, payment_method, date, installments = 1 } = req.body;
     const userId = req.userId;
 
     if (!amount || !category || !payment_method || !date) {
@@ -13,18 +13,34 @@ const addTransaction = async (req, res) => {
     }
 
     try {
-        const newTransaction = new Transaction({
-            user_id: userId,
-            amount,
-            category,
-            description,
-            payment_method,
-            date
-        });
+        const numInstallments = parseInt(installments) || 1;
+        const baseDate = new Date(date + 'T12:00:00'); // T12:00:00 evita problemas de fuso horário
+        const installmentAmount = amount / numInstallments;
 
-        await newTransaction.save();
-        res.status(201).json({ message: 'Transação registrada com sucesso', id: newTransaction._id });
+        for (let i = 0; i < numInstallments; i++) {
+            const currentMonthDate = new Date(baseDate);
+            currentMonthDate.setMonth(baseDate.getMonth() + i);
+            const dateStr = currentMonthDate.toISOString().split('T')[0];
+
+            const descSuffix = numInstallments > 1 ? ` (${i + 1}/${numInstallments})` : '';
+            
+            const newTransaction = new Transaction({
+                user_id: userId,
+                amount: installmentAmount,
+                category,
+                description: (description || 'Sem descrição') + descSuffix,
+                payment_method,
+                date: dateStr,
+                installments: numInstallments,
+                installment_index: i + 1
+            });
+
+            await newTransaction.save();
+        }
+
+        res.status(201).json({ message: 'Transação(ões) registrada(s) com sucesso' });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: 'Erro ao salvar transação' });
     }
 };

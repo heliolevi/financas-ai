@@ -16,6 +16,8 @@ const transactionList = document.getElementById('transaction-list');
 const aiInput = document.getElementById('ai-input');
 const sendBtn = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
+const installmentGroup = document.getElementById('t-installments-group');
+const tPayment = document.getElementById('t-payment');
 
 let isLogin = true;
 
@@ -97,6 +99,16 @@ logoutBtn.addEventListener('click', () => {
     location.reload();
 });
 
+// Alterna visibilidade do campo de parcelas
+tPayment.addEventListener('change', () => {
+    if (tPayment.value === 'Cartão de Crédito') {
+        installmentGroup.style.display = 'block';
+    } else {
+        installmentGroup.style.display = 'none';
+        document.getElementById('t-installments').value = 1;
+    }
+});
+
 // --- TRANSAÇÕES (MÉTODOS MANUAIS) ---
 
 /**
@@ -109,6 +121,7 @@ transactionForm.addEventListener('submit', async (e) => {
         date: document.getElementById('t-date').value,
         category: document.getElementById('t-category').value,
         payment_method: document.getElementById('t-payment').value,
+        installments: parseInt(document.getElementById('t-installments').value) || 1,
         description: document.getElementById('t-description').value
     };
 

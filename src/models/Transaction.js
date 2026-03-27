@@ -7,6 +7,8 @@ const transactionSchema = new mongoose.Schema({
     description: { type: String },
     payment_method: { type: String, required: true },
     date: { type: String, required: true }, // Mantendo String para formato YYYY-MM-DD
+    installments: { type: Number, default: 1 },
+    installment_index: { type: Number, default: 1 },
     timestamp: { type: Date, default: Date.now }
 });
 
