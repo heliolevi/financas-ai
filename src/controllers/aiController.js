@@ -122,22 +122,23 @@ Minha missão é trazer clareza e inteligência para o seu dinheiro. Eu ajudo vo
 
 Sua principal função é ANOTAR gastos e alertar sobre o Dashboard. 
 
-Regras de Registro:
+### REGRAS DE REGISTRO (PARA NOVOS GASTOS)
 1. Quando o usuário disser que gastou algo, extraia: Valor, Categoria, Descrição, Forma de Pagamento e Data.
-2. Se faltarem informações, peça-as de forma agrupada.
-3. Peça confirmação antes de salvar.
-4. Para salvar após confirmação, use a tag: [[SAVE:{"amount": valor_num, "category": "nome_cat", "description": "desc", "payment_method": "metodo", "date": "YYYY-MM-DD"}]]
+2. Peça confirmação: "Posso registrar [Valor] em [Descrição]?"
+3. SOMENTE após o usuário confirmar, use a tag: [[SAVE:{"amount": valor, ...}]]
+4. NUNCA use [[SAVE]] se o usuário estiver pedindo para APAGAR algo.
 
-Regras de Exclusão:
-1. Se o usuário quiser apagar, remover ou cancelar um gasto, identifique o ID correspondente no histórico abaixo.
-2. Peça confirmação: "Tem certeza que deseja apagar o gasto de [Valor] em [Descrição]?"
-3. Para excluir após confirmação, use a tag: [[DELETE:ID_DA_TRANSACAO]]
+### REGRAS DE EXCLUSÃO (PARA REMOVER GASTOS EXISTENTES)
+1. Se o usuário quiser apagar, remover ou cancelar um gasto já salvo, procure o ID no histórico abaixo.
+2. Peça confirmação: "Tem certeza que deseja APAGAR o gasto de [Valor] em [Descrição]?"
+3. SOMENTE após o usuário confirmar a exclusão, use a tag: [[DELETE:ID]]
+4. NUNCA use [[DELETE]] se o usuário estiver pedindo para ADICIONAR algo.
 
-Regras de Análise:
+### REGRAS DE ANÁLISE
 1. Se perguntarem sobre o dashboard, use: ${dynamicContext}.
 2. Seja amigável, educada e concisa. Use Português do Brasil.
 
-Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15))}`
+Histórico para referência (use os IDs para exclusão): ${JSON.stringify(transactions.slice(0, 15))}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -151,30 +152,31 @@ Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15
         let aiResponse = completion.choices[0].message.content;
         let dataChanged = false;
 
-        // 5. REGISTRO AUTOMÁTICO: Procura pela tag [[SAVE:...]] na resposta da IA
+        // 5. PROCESSAMENTO DE TAGS (Mutualmente Exclusivos)
+        const deleteTagMatch = aiResponse.match(/\[\[DELETE:(.*?)\]\]/);
         const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
-        if (saveTagMatch) {
+
+        if (deleteTagMatch) {
+            // Prioridade para exclusão se houver conflito (raro)
+            try {
+                const idToDelete = deleteTagMatch[1].trim();
+                if (idToDelete) {
+                    await deleteTransactionById(userId, idToDelete);
+                    dataChanged = true;
+                    aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
+                }
+            } catch (e) {
+                console.error("Erro ao deletar via IA:", e);
+            }
+        } else if (saveTagMatch) {
+            // Registro apenas se não for exclusão
             try {
                 const transactionData = JSON.parse(saveTagMatch[1]);
                 await recordTransaction(userId, transactionData);
                 dataChanged = true;
-                // Removemos a tag técnica antes de mostrar a resposta para o usuário final
-                aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/, "").trim();
+                aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/g, "").trim();
             } catch (e) {
-                console.error("Erro ao processar salvamento automático da IA:", e);
-            }
-        }
-
-        // 6. EXCLUSÃO AUTOMÁTICA: Procura pela tag [[DELETE:...]] na resposta da IA
-        const deleteTagMatch = aiResponse.match(/\[\[DELETE:(.*?)\]\]/);
-        if (deleteTagMatch) {
-            try {
-                const idToDelete = deleteTagMatch[1];
-                await deleteTransactionById(userId, idToDelete);
-                dataChanged = true;
-                aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/, "").trim();
-            } catch (e) {
-                console.error("Erro ao processar exclusão automática da IA:", e);
+                console.error("Erro ao salvar via IA:", e);
             }
         }
 
