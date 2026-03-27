@@ -31,7 +31,7 @@ const getHistory = (userId, limit = 10) => {
 // Helper to get user transactions for context
 const getTransactions = (userId) => {
     return new Promise((resolve, reject) => {
-        db.all(`SELECT amount, category, description, payment_method, date FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 20`, [userId], (err, rows) => {
+        db.all(`SELECT id, amount, category, description, payment_method, date FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 20`, [userId], (err, rows) => {
             if (err) reject(err);
             else resolve(rows);
         });
@@ -49,6 +49,16 @@ const recordTransaction = (userId, data) => {
                 else resolve(this.lastID);
             }
         );
+    });
+};
+
+// Helper to delete a transaction
+const deleteTransactionById = (userId, id) => {
+    return new Promise((resolve, reject) => {
+        db.run(`DELETE FROM transactions WHERE id = ? AND user_id = ?`, [id, userId], function(err) {
+            if (err) reject(err);
+            else resolve(this.changes);
+        });
     });
 };
 
@@ -87,24 +97,24 @@ const analyzeFinances = async (req, res) => {
                 
 Minha missão é trazer clareza e inteligência para o seu dinheiro. Eu ajudo você a registrar despesas e ANALISAR seus gastos de forma proativa. 
 
-Sua principal função é ANOTAR gastos e alertar sobre o Dashboard. Quando o usuário disser que gastou algo, você deve extrair ou perguntar por:
-- Valor (R$)
-- Categoria (opções: Alimentação, Transporte, Lazer, Moradia, Saúde, Educação, Outros)
-- Descrição (ex: Almoço, Uber, Aluguel)
-- Forma de Pagamento (opções: Dinheiro, Cartão de Crédito, Cartão de Débito, Pix)
-- Data (use "${today}" se o usuário disser "hoje" ou não especificar).
-
-Regras de Análise:
-1. Se o usuário perguntar "onde estou gastando mais" ou algo sobre o dashboard, use os seguintes dados: ${dynamicContext}.
-2. Se o uso do cartão de crédito estiver acima de 60%, dê um toque amigável de cuidado ("cuidado com a fatura").
-3. Seja amigável, educada, concisa e use Português do Brasil. Use um tom encorajador.
+Sua principal função é ANOTAR gastos e alertar sobre o Dashboard. 
 
 Regras de Registro:
-1. Se faltarem informações, peça-as de forma agrupada para facilitar.
-2. Quando tiver TODOS os dados, peça confirmação: "Posso registrar [Valor] em [Categoria] ([Descrição]) via [Forma de Pagamento]?"
-3. SOMENTE após o usuário confirmar, adicione EXATAMENTE esta tag ao final da sua resposta: [[SAVE:{"amount": valor_num, "category": "nome_cat", "description": "desc", "payment_method": "metodo", "date": "YYYY-MM-DD"}]]
+1. Quando o usuário disser que gastou algo, extraia: Valor, Categoria, Descrição, Forma de Pagamento e Data.
+2. Se faltarem informações, peça-as de forma agrupada.
+3. Peça confirmação antes de salvar.
+4. Para salvar após confirmação, use a tag: [[SAVE:{"amount": valor_num, "category": "nome_cat", "description": "desc", "payment_method": "metodo", "date": "YYYY-MM-DD"}]]
 
-Histórico de Gastos Recentes: ${JSON.stringify(transactions.slice(0, 10))}`
+Regras de Exclusão:
+1. Se o usuário quiser apagar, remover ou cancelar um gasto, identifique o ID correspondente no histórico abaixo.
+2. Peça confirmação: "Tem certeza que deseja apagar o gasto de [Valor] em [Descrição]?"
+3. Para excluir após confirmação, use a tag: [[DELETE:ID_DA_TRANSACAO]]
+
+Regras de Análise:
+1. Se perguntarem sobre o dashboard, use: ${dynamicContext}.
+2. Seja amigável, educada e concisa. Use Português do Brasil.
+
+Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15))}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -116,7 +126,7 @@ Histórico de Gastos Recentes: ${JSON.stringify(transactions.slice(0, 10))}`
         });
 
         let aiResponse = completion.choices[0].message.content;
-        let transactionAdded = false;
+        let dataChanged = false;
 
         // 5. Parse for auto-registration tag
         const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
@@ -124,20 +134,32 @@ Histórico de Gastos Recentes: ${JSON.stringify(transactions.slice(0, 10))}`
             try {
                 const transactionData = JSON.parse(saveTagMatch[1]);
                 await recordTransaction(userId, transactionData);
-                transactionAdded = true;
-                // Clean the tag from the text shown to user
+                dataChanged = true;
                 aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/, "").trim();
             } catch (e) {
                 console.error("Error parsing/saving transaction from AI:", e);
             }
         }
 
-        // 6. Save AI response to history
+        // 6. Parse for deletion tag
+        const deleteTagMatch = aiResponse.match(/\[\[DELETE:(.*?)\]\]/);
+        if (deleteTagMatch) {
+            try {
+                const idToDelete = deleteTagMatch[1];
+                await deleteTransactionById(userId, idToDelete);
+                dataChanged = true;
+                aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/, "").trim();
+            } catch (e) {
+                console.error("Error parsing/deleting transaction from AI:", e);
+            }
+        }
+
+        // 7. Save AI response to history
         await saveMessage(userId, 'assistant', aiResponse);
 
         res.status(200).json({ 
             response: aiResponse,
-            transactionAdded: transactionAdded
+            transactionAdded: dataChanged // Re-using this flag to trigger refresh
         });
 
     } catch (error) {
