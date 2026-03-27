@@ -36,136 +36,147 @@
                 </form>
                 <div id="auth-message" class="message"></div>
             </div>
-        </section>
-
         <!-- Dashboard Section -->
         <section id="dashboard-section">
             <header>
-                <div class="logo">Finanças <span class="gradient-text">AI</span></div>
+                <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
                 <div class="user-info">
-                    <span id="user-display">Usuário</span>
-                    <button id="upgrade-btn" class="pro-btn" style="display: none;">Assinar Lumi Pro 🚀</button>
+                    <div class="user-badge">
+                        <span id="user-display">Usuário</span>
+                        <span class="pro-badge">Assinante</span>
+                    </div>
+                    <button id="upgrade-btn" class="pro-btn" style="display: none;">Fazer Upgrade 🚀</button>
                     <button id="logout-btn">Sair</button>
                 </div>
             </header>
 
             <main>
-                <!-- Dashboard Reports -->
+                <!-- Alerts Area -->
                 <div id="danger-zone" class="danger-alert">
-                    <span>⚠️</span>
-                    <p id="danger-msg">Cuidado! Você está gastando muito no cartão de crédito.</p>
+                    <span class="alert-icon">⚠️</span>
+                    <p id="danger-msg">Atenção: Seus gastos estão acima da média.</p>
                 </div>
 
+                <!-- Stats Overview -->
                 <div class="stats-container">
                     <div class="glass-card stat-card">
                         <h3>Gasto Total</h3>
                         <div id="stat-total" class="stat-value">R$ 0,00</div>
                     </div>
                     <div class="glass-card stat-card">
-                        <h3>Maior Categoria</h3>
+                        <h3>Foco do Mês</h3>
                         <div id="stat-top-cat" class="stat-value">-</div>
                     </div>
                     <div class="glass-card stat-card">
-                        <h3>Uso de Crédito</h3>
+                        <h3>Limite de Crédito</h3>
                         <div id="stat-credit-pct" class="stat-value">0%</div>
                     </div>
                 </div>
 
+                <!-- Enhanced Features -->
                 <div id="pro-features-bar" class="pro-features-bar" style="display: none;">
-                <h3>Recursos Pro 💎</h3>
-                <div class="report-btns">
-                    <button id="export-pdf-btn" class="secondary-btn">📄 Exportar PDF</button>
-                    <button id="export-excel-btn" class="secondary-btn">📊 Exportar Excel</button>
-                </div>
-            </div>
-
-            <div class="dashboard-grid">
-                <!-- Left: Transactions & Entry -->
-                <div class="left-panel">
-                    <div class="glass-card entry-card">
-                        <h2>Nova Transação</h2>
-                        <form id="transaction-form">
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Valor (R$)</label>
-                                    <input type="number" id="t-amount" placeholder="0.00" step="0.01" required>
-                                </div>
-                                <div class="input-group">
-                                    <label>Data</label>
-                                    <input type="date" id="t-date" required>
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>Categoria</label>
-                                <select id="t-category" required>
-                                    <option value="Alimentação">Alimentação</option>
-                                    <option value="Transporte">Transporte</option>
-                                    <option value="Lazer">Lazer</option>
-                                    <option value="Moradia">Moradia</option>
-                                    <option value="Saúde">Saúde</option>
-                                    <option value="Educação">Educação</option>
-                                    <option value="Outros">Outros</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>Forma de Pagamento</label>
-                                <select id="t-payment" required>
-                                    <option value="Dinheiro">Dinheiro</option>
-                                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                    <option value="Cartão de Débito">Cartão de Débito</option>
-                                    <option value="Pix">Pix</option>
-                                </select>
-                            </div>
-                            <div class="input-group" id="t-installments-group" style="display: none;">
-                                <label>Número de Parcelas</label>
-                                <input type="number" id="t-installments" value="1" min="1" max="48">
-                            </div>
-                            <div class="input-group">
-                                <label>Descrição</label>
-                                <input type="text" id="t-description" placeholder="Ex: Almoço no shopping">
-                            </div>
-                            <button type="submit" class="main-btn">Registrar Gasto</button>
-                        </form>
-                    </div>
-
-                    <div class="glass-card list-card">
-                        <div class="list-header">
-                            <h2>Distribuição por Categoria</h2>
-                        </div>
-                        <div id="category-list" class="category-stats">
-                            <!-- Category bars will be loaded here -->
-                        </div>
-                    </div>
-
-                    <div class="glass-card list-card">
-                        <div class="list-header">
-                            <h2>Histórico</h2>
-                            <div class="total-badge">Total: <span id="total-amount">R$ 0,00</span></div>
-                        </div>
-                        <div id="transaction-list" class="scroll-area">
-                            <!-- Transactions will be loaded here -->
-                            <p class="empty-msg">Nenhuma transação registrada.</p>
-                        </div>
+                    <h3>Gerenciamento Avançado 💎</h3>
+                    <div class="report-btns">
+                        <button id="export-pdf-btn" class="secondary-btn">📄 Exportar PDF</button>
+                        <button id="export-excel-btn" class="secondary-btn">📊 Exportar Excel</button>
                     </div>
                 </div>
 
-                <div class="right-panel">
-                    <div class="glass-card ai-card">
-                        <div class="ai-header">
-                            <div class="ai-identity">
-                                <img src="assets/lumi-avatar.png" alt="Lumi" class="lumi-thumb">
-                                <div>
-                                    <h2>Lumi <span class="ai-badge">Beta</span></h2>
-                                    <span class="ai-status">Online e pronta para ajudar</span>
+                <div class="dashboard-grid">
+                    <!-- Data & Controls -->
+                    <div class="left-panel">
+                        <div class="glass-card entry-card">
+                            <h2>Novo Registro</h2>
+                            <form id="transaction-form">
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Valor (R$)</label>
+                                        <input type="number" id="t-amount" placeholder="0.00" step="0.01" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Data</label>
+                                        <input type="date" id="t-date" required>
+                                    </div>
                                 </div>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Categoria</label>
+                                        <select id="t-category" required>
+                                            <option value="Alimentação">Alimentação</option>
+                                            <option value="Transporte">Transporte</option>
+                                            <option value="Lazer">Lazer</option>
+                                            <option value="Moradia">Moradia</option>
+                                            <option value="Saúde">Saúde</option>
+                                            <option value="Educação">Educação</option>
+                                            <option value="Outros">Outros</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Pagamento</label>
+                                        <select id="t-payment" required>
+                                            <option value="Dinheiro">Dinheiro</option>
+                                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                            <option value="Cartão de Débito">Cartão de Débito</option>
+                                            <option value="Pix">Pix</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="input-group" id="t-installments-group" style="display: none;">
+                                    <label>Parcelas</label>
+                                    <input type="number" id="t-installments" value="1" min="1" max="48">
+                                </div>
+                                <div class="input-group">
+                                    <label>Descrição</label>
+                                    <input type="text" id="t-description" placeholder="Ex: Jantar em família">
+                                </div>
+                                <button type="submit" class="main-btn">Salvar Transação</button>
+                            </form>
+                        </div>
+
+                        <div class="glass-card list-card">
+                            <div class="list-header">
+                                <h2>Distribuição Mensal</h2>
+                            </div>
+                            <div id="category-list" class="category-stats">
+                                <!-- Bars -->
                             </div>
                         </div>
-                        <div id="chat-messages" class="scroll-area">
-                            <div class="ai-msg">Olá! Eu sou a **Lumi**, sua assistente financeira. Como posso ajudar você hoje?</div>
+
+                        <div class="glass-card list-card">
+                            <div class="list-header">
+                                <h2>Histórico</h2>
+                                <div class="total-badge">Total: <span id="total-amount">R$ 0,00</span></div>
+                            </div>
+                            <div id="transaction-list" class="scroll-area">
+                                <p class="empty-msg">Sua jornada financeira começa aqui.</p>
+                            </div>
                         </div>
-                        <div class="chat-input-area">
-                            <input type="text" id="ai-input" placeholder="Pergunte algo (ex: Como gastei este mês?)">
-                            <button id="send-btn">Enviar</button>
+                    </div>
+
+                    <!-- AI Assistant -->
+                    <div class="right-panel">
+                        <div class="glass-card ai-card">
+                            <div class="ai-header">
+                                <div class="ai-identity">
+                                    <div class="lumi-avatar-container">
+                                        <img src="assets/lumi-avatar.png" alt="Lumi" class="lumi-thumb">
+                                        <div class="online-indicator"></div>
+                                    </div>
+                                    <div>
+                                        <h2>Lumi Concierge <span class="ai-badge">Gold Beta</span></h2>
+                                        <span class="ai-status">Sua inteligência financeira premium</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="chat-messages" class="scroll-area chat-messages">
+                                <div class="ai-msg">Olá! Sou sua assistente **Lumi**. Estou aqui para transformar sua gestão financeira em uma experiência tranquila e inteligente. Como posso ser útil?</div>
+                            </div>
+                            <div class="chat-input-area">
+                                <input type="text" id="ai-input" placeholder="Converse com a Lumi...">
+                                <button id="send-btn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
