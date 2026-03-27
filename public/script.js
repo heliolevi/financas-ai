@@ -103,16 +103,23 @@ async function updateSubscriptionUI() {
     const status = localStorage.getItem('subscriptionStatus');
     const username = localStorage.getItem('username');
     
-    // Bypass para o criador
     const isPro = status === 'active' || username === 'helio.vieira' || username === 'admin';
+    const proBadge = document.querySelector('.pro-badge');
 
     if (isPro) {
         upgradeBtn.style.display = 'none';
         proFeaturesBar.style.display = 'block';
-        userDisplay.innerHTML = `${USERNAME} <span class="pro-badge">PRO</span>`;
+        if (proBadge) {
+            proBadge.innerText = 'PRO';
+            proBadge.style.background = 'var(--accent-gold)';
+        }
     } else {
         upgradeBtn.style.display = 'block';
         proFeaturesBar.style.display = 'none';
+        if (proBadge) {
+            proBadge.innerText = 'FREE';
+            proBadge.style.background = 'var(--text-dim)';
+        }
     }
 }
 
@@ -405,7 +412,13 @@ async function sendToAI() {
 function addChatMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = sender === 'ai' ? 'ai-msg' : 'user-msg';
-    msg.innerText = text;
+    
+    // Simples renderizador de Markdown para negrito e quebras de linha
+    const formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+        
+    msg.innerHTML = formattedText;
     chatMessages.appendChild(msg);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
