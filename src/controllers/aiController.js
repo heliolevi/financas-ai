@@ -75,6 +75,18 @@ const deleteTransactionById = (userId, id) => {
     });
 };
 
+/**
+ * Remove TODOS os gastos do usuário de uma vez.
+ */
+const deleteAllTransactions = (userId) => {
+    return new Promise((resolve, reject) => {
+        db.run(`DELETE FROM transactions WHERE user_id = ?`, [userId], function(err) {
+            if (err) reject(err);
+            else resolve(this.changes);
+        });
+    });
+};
+
 // --- FUNÇÃO PRINCIPAL ---
 
 /**
@@ -82,7 +94,7 @@ const deleteTransactionById = (userId, id) => {
  * 1. Recebe a mensagem do usuário.
  * 2. Junta com o histórico e dados do Dashboard.
  * 3. Envia para a Groq.
- * 4. Analisa a resposta em busca de tags mágicas [[SAVE]] ou [[DELETE]].
+ * 4. Analisa a resposta em busca de tags mágicas [[SAVE]], [[DELETE]] ou [[DELETE_ALL]].
  */
 const analyzeFinances = async (req, res) => {
     const userId = req.userId;
@@ -118,27 +130,21 @@ const analyzeFinances = async (req, res) => {
                 role: "system",
                 content: `Olá, eu sou a **Lumi**, sua assistente pessoal de finanças. 
                 
-Minha missão é trazer clareza e inteligência para o seu dinheiro. Eu ajudo você a registrar despesas e ANALISAR seus gastos de forma proativa. 
+Sua missão é dar controle total ao usuário sobre seus gastos. 
 
-Sua principal função é ANOTAR gastos e alertar sobre o Dashboard. 
+### REGRAS DE REGISTRO
+1. Use [[SAVE:{"amount":...}]] apenas após confirmação.
 
-### REGRAS DE REGISTRO (PARA NOVOS GASTOS)
-1. Quando o usuário disser que gastou algo, extraia: Valor, Categoria, Descrição, Forma de Pagamento e Data.
-2. Peça confirmação: "Posso registrar [Valor] em [Descrição]?"
-3. SOMENTE após o usuário confirmar, use a tag: [[SAVE:{"amount": valor, ...}]]
-4. NUNCA use [[SAVE]] se o usuário estiver pedindo para APAGAR algo.
-
-### REGRAS DE EXCLUSÃO (PARA REMOVER GASTOS EXISTENTES)
-1. Se o usuário quiser apagar, remover ou cancelar um gasto já salvo, procure o ID no histórico abaixo.
-2. Peça confirmação: "Tem certeza que deseja APAGAR o gasto de [Valor] em [Descrição]?"
-3. SOMENTE após o usuário confirmar a exclusão, use a tag: [[DELETE:ID]]
-4. NUNCA use [[DELETE]] se o usuário estiver pedindo para ADICIONAR algo.
+### REGRAS DE EXCLUSÃO (MÚLTIPLAS OU TUDO)
+1. **Vários gastos**: Se o usuário quiser apagar vários itens, você pode colocar várias tags [[DELETE:id]] na mesma resposta.
+2. **Apagar TUDO**: Se o usuário quiser zerar a conta ou apagar todo o histórico, use a tag [[DELETE_ALL]].
+3. **Confirmação**: SEMPRE peça confirmação antes de apagar, especialmente para "Apagar Tudo". Ex: "Tem certeza que deseja zerar todo o seu histórico?"
 
 ### REGRAS DE ANÁLISE
-1. Se perguntarem sobre o dashboard, use: ${dynamicContext}.
-2. Seja amigável, educada e concisa. Use Português do Brasil.
+1. Use os dados: ${dynamicContext}.
+2. Seja amigável e concisa em Português do Brasil.
 
-Histórico para referência (use os IDs para exclusão): ${JSON.stringify(transactions.slice(0, 15))}`
+Histórico com IDs: ${JSON.stringify(transactions.slice(0, 15))}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -152,24 +158,29 @@ Histórico para referência (use os IDs para exclusão): ${JSON.stringify(transa
         let aiResponse = completion.choices[0].message.content;
         let dataChanged = false;
 
-        // 5. PROCESSAMENTO DE TAGS (Mutualmente Exclusivos)
-        const deleteTagMatch = aiResponse.match(/\[\[DELETE:(.*?)\]\]/);
-        const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
+        // 5. PROCESSAMENTO DE TAGS
 
-        if (deleteTagMatch) {
-            // Prioridade para exclusão se houver conflito (raro)
-            try {
-                const idToDelete = deleteTagMatch[1].trim();
-                if (idToDelete) {
-                    await deleteTransactionById(userId, idToDelete);
-                    dataChanged = true;
-                    aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
-                }
-            } catch (e) {
-                console.error("Erro ao deletar via IA:", e);
+        // Caso 1: Apagar Tudo
+        if (aiResponse.includes("[[DELETE_ALL]]")) {
+            await deleteAllTransactions(userId);
+            dataChanged = true;
+            aiResponse = aiResponse.replace("[[DELETE_ALL]]", "").trim();
+        }
+
+        // Caso 2: Apagar Múltiplos (Regex Global /g para pegar todas)
+        const deleteMatches = aiResponse.matchAll(/\[\[DELETE:(.*?)\]\]/g);
+        for (const match of deleteMatches) {
+            const idToDelete = match[1].trim();
+            if (idToDelete) {
+                await deleteTransactionById(userId, idToDelete);
+                dataChanged = true;
             }
-        } else if (saveTagMatch) {
-            // Registro apenas se não for exclusão
+        }
+        aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
+
+        // Caso 3: Salvar (Apenas se não houver delete_all)
+        const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
+        if (saveTagMatch && !aiResponse.includes("[[DELETE_ALL]]")) {
             try {
                 const transactionData = JSON.parse(saveTagMatch[1]);
                 await recordTransaction(userId, transactionData);
@@ -180,12 +191,12 @@ Histórico para referência (use os IDs para exclusão): ${JSON.stringify(transa
             }
         }
 
-        // 7. Salva a resposta da Lumi no histórico para manter a memória fluindo
+        // 7. Salva a resposta da Lumi no histórico
         await saveMessage(userId, 'assistant', aiResponse);
 
         res.status(200).json({ 
             response: aiResponse,
-            transactionAdded: dataChanged // Este flag avisa o frontend para recarregar o Dashboard
+            transactionAdded: dataChanged 
         });
 
     } catch (error) {
