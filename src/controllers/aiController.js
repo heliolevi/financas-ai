@@ -1,10 +1,11 @@
 const Groq = require('groq-sdk');
-const db = require('../config/database');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+const Message = require('../models/Message');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Inicializa o cliente da Groq (IA)
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
@@ -14,88 +15,88 @@ const groq = new Groq({
 /**
  * Salva uma mensagem no histórico para que a Lumi tenha "memória".
  */
-const saveMessage = (userId, role, content) => {
-    return new Promise((resolve, reject) => {
-        db.run(`INSERT INTO messages (user_id, role, content) VALUES (?, ?, ?)`, [userId, role, content], (err) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
+const saveMessage = async (userId, role, content) => {
+    try {
+        await Message.create({ user_id: userId, role, content });
+    } catch (err) {
+        console.error("Erro ao salvar mensagem:", err);
+    }
 };
 
 /**
  * Recupera as últimas conversas para dar contexto à IA.
  */
-const getHistory = (userId, limit = 10) => {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT role, content FROM messages WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?`, [userId, limit], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows.reverse()); // Inverte para ficar na ordem cronológica
-        });
-    });
+const getHistory = async (userId, limit = 10) => {
+    try {
+        const history = await Message.find({ user_id: userId })
+            .sort({ timestamp: -1 })
+            .limit(limit);
+        return history.reverse().map(m => ({ role: m.role, content: m.content }));
+    } catch (err) {
+        console.error("Erro ao buscar histórico:", err);
+        return [];
+    }
 };
 
 /**
  * Busca transações recentes para que a Lumi saiba o que o usuário já gastou.
  */
-const getTransactions = (userId) => {
-    return new Promise((resolve, reject) => {
-        db.all(`SELECT id, amount, category, description, payment_method, date FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 20`, [userId], (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
+const getTransactionsFromDB = async (userId) => {
+    try {
+        const transactions = await Transaction.find({ user_id: userId })
+            .sort({ date: -1, timestamp: -1 })
+            .limit(20);
+        return transactions.map(t => ({
+            id: t._id,
+            amount: t.amount,
+            category: t.category,
+            description: t.description,
+            payment_method: t.payment_method,
+            date: t.date
+        }));
+    } catch (err) {
+        console.error("Erro ao buscar transações:", err);
+        return [];
+    }
 };
 
 /**
  * Insere um novo gasto via IA.
  */
-const recordTransaction = (userId, data) => {
-    return new Promise((resolve, reject) => {
-        const { amount, category, description, payment_method, date } = data;
-        db.run(`INSERT INTO transactions (user_id, amount, category, description, payment_method, date) VALUES (?, ?, ?, ?, ?, ?)`,
-            [userId, amount, category, description, payment_method, date],
-            function(err) {
-                if (err) reject(err);
-                else resolve(this.lastID);
-            }
-        );
-    });
+const recordTransaction = async (userId, data) => {
+    try {
+        const t = new Transaction({ user_id: userId, ...data });
+        await t.save();
+        return t._id;
+    } catch (err) {
+        console.error("Erro ao gravar transação:", err);
+    }
 };
 
 /**
  * Remove um gasto identificado pela IA via ID.
  */
-const deleteTransactionById = (userId, id) => {
-    return new Promise((resolve, reject) => {
-        db.run(`DELETE FROM transactions WHERE id = ? AND user_id = ?`, [id, userId], function(err) {
-            if (err) reject(err);
-            else resolve(this.changes);
-        });
-    });
+const deleteTransactionById = async (userId, id) => {
+    try {
+        await Transaction.deleteOne({ _id: id, user_id: userId });
+    } catch (err) {
+        console.error("Erro ao deletar transação:", err);
+    }
 };
 
 /**
  * Remove TODOS os gastos do usuário de uma vez.
  */
-const deleteAllTransactions = (userId) => {
-    return new Promise((resolve, reject) => {
-        db.run(`DELETE FROM transactions WHERE user_id = ?`, [userId], function(err) {
-            if (err) reject(err);
-            else resolve(this.changes);
-        });
-    });
+const deleteAllTransactions = async (userId) => {
+    try {
+        await Transaction.deleteMany({ user_id: userId });
+    } catch (err) {
+        console.error("Erro ao deletar tudo:", err);
+    }
 };
 
 // --- FUNÇÃO PRINCIPAL ---
 
-/**
- * Lógica central da Lumi: 
- * 1. Recebe a mensagem do usuário.
- * 2. Junta com o histórico e dados do Dashboard.
- * 3. Envia para a Groq.
- * 4. Analisa a resposta em busca de tags mágicas [[SAVE]], [[DELETE]] ou [[DELETE_ALL]].
- */
 const analyzeFinances = async (req, res) => {
     const userId = req.userId;
     const { message } = req.body;
@@ -106,10 +107,8 @@ const analyzeFinances = async (req, res) => {
 
         // 2. ColetaContexto: Memória e Transações
         const history = await getHistory(userId);
-        const transactions = await getTransactions(userId);
+        const transactions = await getTransactionsFromDB(userId);
         
-        // Dica: Calculamos os totais aqui para que a IA não precise fazer contas difíceis, 
-        // ela apenas interpreta os resultados já mastigados.
         const total = transactions.reduce((acc, t) => acc + t.amount, 0);
         const cats = {};
         transactions.forEach(t => cats[t.category] = (cats[t.category] || 0) + t.amount);
@@ -122,9 +121,6 @@ const analyzeFinances = async (req, res) => {
             Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(PERIGO: Muito alto!)' : ''}
         `;
 
-        const today = new Date().toISOString().split('T')[0];
-
-        // 3. Monta o Prompt do Sistema (A "Personalidade" da Lumi)
         const messages = [
             {
                 role: "system",
@@ -149,7 +145,6 @@ Histórico com IDs: ${JSON.stringify(transactions.slice(0, 15))}`
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
 
-        // 4. Envia para a API da Groq
         const completion = await groq.chat.completions.create({
             messages: messages,
             model: "llama-3.3-70b-versatile",
@@ -158,16 +153,12 @@ Histórico com IDs: ${JSON.stringify(transactions.slice(0, 15))}`
         let aiResponse = completion.choices[0].message.content;
         let dataChanged = false;
 
-        // 5. PROCESSAMENTO DE TAGS
-
-        // Caso 1: Apagar Tudo
         if (aiResponse.includes("[[DELETE_ALL]]")) {
             await deleteAllTransactions(userId);
             dataChanged = true;
             aiResponse = aiResponse.replace("[[DELETE_ALL]]", "").trim();
         }
 
-        // Caso 2: Apagar Múltiplos (Regex Global /g para pegar todas)
         const deleteMatches = aiResponse.matchAll(/\[\[DELETE:(.*?)\]\]/g);
         for (const match of deleteMatches) {
             const idToDelete = match[1].trim();
@@ -178,7 +169,6 @@ Histórico com IDs: ${JSON.stringify(transactions.slice(0, 15))}`
         }
         aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
 
-        // Caso 3: Salvar (Apenas se não houver delete_all)
         const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
         if (saveTagMatch && !aiResponse.includes("[[DELETE_ALL]]")) {
             try {
@@ -191,7 +181,6 @@ Histórico com IDs: ${JSON.stringify(transactions.slice(0, 15))}`
             }
         }
 
-        // 7. Salva a resposta da Lumi no histórico
         await saveMessage(userId, 'assistant', aiResponse);
 
         res.status(200).json({ 
