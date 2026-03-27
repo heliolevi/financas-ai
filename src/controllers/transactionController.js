@@ -43,4 +43,32 @@ const deleteTransaction = (req, res) => {
     });
 };
 
-module.exports = { addTransaction, getTransactions, deleteTransaction };
+const getDashboardStats = (req, res) => {
+    const userId = req.userId;
+    
+    const queries = {
+        total: `SELECT SUM(amount) as total FROM transactions WHERE user_id = ?`,
+        byCategory: `SELECT category, SUM(amount) as amount FROM transactions WHERE user_id = ? GROUP BY category ORDER BY amount DESC`,
+        byPayment: `SELECT payment_method, SUM(amount) as amount FROM transactions WHERE user_id = ? GROUP BY payment_method`
+    };
+
+    db.get(queries.total, [userId], (err, totalRow) => {
+        if (err) return res.status(500).json({ message: 'Error fetching total' });
+        
+        db.all(queries.byCategory, [userId], (err, categories) => {
+            if (err) return res.status(500).json({ message: 'Error fetching categories' });
+            
+            db.all(queries.byPayment, [userId], (err, payments) => {
+                if (err) return res.status(500).json({ message: 'Error fetching payments' });
+                
+                res.status(200).json({
+                    total: totalRow.total || 0,
+                    categories,
+                    payments
+                });
+            });
+        });
+    });
+};
+
+module.exports = { addTransaction, getTransactions, deleteTransaction, getDashboardStats };

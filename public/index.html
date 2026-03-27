@@ -47,7 +47,29 @@
                 </div>
             </header>
 
-            <main class="dashboard-grid">
+            <main>
+                <!-- Dashboard Reports -->
+                <div id="danger-zone" class="danger-alert">
+                    <span>⚠️</span>
+                    <p id="danger-msg">Cuidado! Você está gastando muito no cartão de crédito.</p>
+                </div>
+
+                <div class="stats-container">
+                    <div class="glass-card stat-card">
+                        <h3>Gasto Total</h3>
+                        <div id="stat-total" class="stat-value">R$ 0,00</div>
+                    </div>
+                    <div class="glass-card stat-card">
+                        <h3>Maior Categoria</h3>
+                        <div id="stat-top-cat" class="stat-value">-</div>
+                    </div>
+                    <div class="glass-card stat-card">
+                        <h3>Uso de Crédito</h3>
+                        <div id="stat-credit-pct" class="stat-value">0%</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
                 <!-- Left: Transactions & Entry -->
                 <div class="left-panel">
                     <div class="glass-card entry-card">
@@ -90,6 +112,15 @@
                             </div>
                             <button type="submit" class="main-btn">Registrar Gasto</button>
                         </form>
+                    </div>
+
+                    <div class="glass-card list-card">
+                        <div class="list-header">
+                            <h2>Distribuição por Categoria</h2>
+                        </div>
+                        <div id="category-list" class="category-stats">
+                            <!-- Category bars will be loaded here -->
+                        </div>
                     </div>
 
                     <div class="glass-card list-card">

@@ -5,6 +5,7 @@ const verifyToken = require('../middleware/authMiddleware');
 
 router.post('/', verifyToken, transactionController.addTransaction);
 router.get('/', verifyToken, transactionController.getTransactions);
+router.get('/stats', verifyToken, transactionController.getDashboardStats);
 router.delete('/:id', verifyToken, transactionController.deleteTransaction);
 
 module.exports = router;

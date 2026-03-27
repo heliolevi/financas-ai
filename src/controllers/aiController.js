@@ -63,30 +63,46 @@ const analyzeFinances = async (req, res) => {
         // 2. Fetch history and context
         const history = await getHistory(userId);
         const transactions = await getTransactions(userId);
-        const context = JSON.stringify(transactions);
+        
+        // Calculate dynamic stats for AI context
+        const total = transactions.reduce((acc, t) => acc + t.amount, 0);
+        const cats = {};
+        transactions.forEach(t => cats[t.category] = (cats[t.category] || 0) + t.amount);
+        const creditSpent = transactions.filter(t => t.payment_method === 'Cartão de Crédito').reduce((acc, t) => acc + t.amount, 0);
+        const creditPct = total > 0 ? (creditSpent / total) * 100 : 0;
+
+        const dynamicContext = `
+            Total gasto: R$ ${total.toFixed(2)}
+            Gasto por categoria: ${JSON.stringify(cats)}
+            Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(PERIGO: Muito alto!)' : ''}
+        `;
+
         const today = new Date().toISOString().split('T')[0];
 
         // 3. Prepare prompt
         const messages = [
             {
                 role: "system",
-                content: `Você é o "Anotador Financeiro", um assistente pessoal que ajuda o usuário a registrar despesas de forma rápida e organizada. 
+                content: `Você é o "Anotador Financeiro", um assistente pessoal que ajuda o usuário a registrar despesas e ANALISAR seus gastos. 
                 
-Sua principal função é ANOTAR gastos. Quando o usuário disser que gastou algo, você deve extrair ou perguntar por:
+Sua principal função é ANOTAR gastos e alertar sobre o Dashboard. Quando o usuário disser que gastou algo, você deve extrair ou perguntar por:
 - Valor (R$)
 - Categoria (opções: Alimentação, Transporte, Lazer, Moradia, Saúde, Educação, Outros)
 - Descrição (ex: Almoço, Uber, Aluguel)
 - Forma de Pagamento (opções: Dinheiro, Cartão de Crédito, Cartão de Débito, Pix)
 - Data (use "${today}" se o usuário disser "hoje" ou não especificar).
 
-Regras:
-1. Seja amigável, conciso e use Português do Brasil.
-2. Se faltarem informações, peça-as uma por uma ou de forma agrupada para facilitar.
-3. Quando tiver TODOS os dados, peça uma confirmação clara: "Posso registrar [Valor] em [Categoria] ([Descrição]) via [Forma de Pagamento]?"
-4. SOMENTE após o usuário confirmar (dizendo "sim", "pode", "ok", etc), você deve gerar o registro.
-5. IMPORTANTE: Para efetivar o registro após a confirmação, adicione EXATAMENTE esta tag ao final da sua resposta: [[SAVE:{"amount": valor_num, "category": "nome_cat", "description": "desc", "payment_method": "metodo", "date": "YYYY-MM-DD"}]]
+Regras de Análise:
+1. Se o usuário perguntar "onde estou gastando mais" ou algo sobre o dashboard, use os seguintes dados: ${dynamicContext}.
+2. Se o uso do cartão de crédito estiver acima de 60%, dê um toque amigável de cuidado ("cuidado com a fatura").
+3. Seja amigável, conciso e use Português do Brasil.
 
-Histórico de Gastos Recentes: ${context}`
+Regras de Registro:
+1. Se faltarem informações, peça-as de forma agrupada para facilitar.
+2. Quando tiver TODOS os dados, peça confirmação: "Posso registrar [Valor] em [Categoria] ([Descrição]) via [Forma de Pagamento]?"
+3. SOMENTE após o usuário confirmar, adicione EXATAMENTE esta tag ao final da sua resposta: [[SAVE:{"amount": valor_num, "category": "nome_cat", "description": "desc", "payment_method": "metodo", "date": "YYYY-MM-DD"}]]
+
+Histórico de Gastos Recentes: ${JSON.stringify(transactions.slice(0, 10))}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];

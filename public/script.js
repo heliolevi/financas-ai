@@ -130,6 +130,7 @@ async function loadTransactions() {
         if (data.length === 0) {
             transactionList.innerHTML = '<p class="empty-msg">Nenhuma transação registrada.</p>';
             document.getElementById('total-amount').innerText = 'R$ 0,00';
+            loadDashboardStats(); // Refresh stats even if empty
             return;
         }
 
@@ -151,8 +152,63 @@ async function loadTransactions() {
         });
 
         document.getElementById('total-amount').innerText = `R$ ${total.toFixed(2)}`;
+        loadDashboardStats();
     } catch (err) {
         console.error(err);
+    }
+}
+
+async function loadDashboardStats() {
+    try {
+        const res = await fetch(API_URL + '/transactions/stats', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+
+        // Update Stat Cards
+        document.getElementById('stat-total').innerText = `R$ ${data.total.toFixed(2)}`;
+        
+        const topCat = data.categories.length > 0 ? data.categories[0].category : '-';
+        document.getElementById('stat-top-cat').innerText = topCat;
+
+        // Credit Card Danger Logic
+        const creditData = data.payments.find(p => p.payment_method === 'Cartão de Crédito');
+        const creditAmount = creditData ? creditData.amount : 0;
+        const creditPct = data.total > 0 ? (creditAmount / data.total) * 100 : 0;
+        
+        const creditEl = document.getElementById('stat-credit-pct');
+        creditEl.innerText = `${creditPct.toFixed(0)}%`;
+        
+        const dangerZone = document.getElementById('danger-zone');
+        if (creditPct > 60) {
+            creditEl.className = 'stat-value danger';
+            dangerZone.classList.add('active');
+        } else {
+            creditEl.className = 'stat-value safe';
+            dangerZone.classList.remove('active');
+        }
+
+        // Category Bars
+        const categoryList = document.getElementById('category-list');
+        categoryList.innerHTML = '';
+        data.categories.forEach(cat => {
+            const pct = (cat.amount / data.total) * 100;
+            const row = document.createElement('div');
+            row.className = 'category-row';
+            row.innerHTML = `
+                <div class="category-info">
+                    <span>${cat.category}</span>
+                    <span>R$ ${cat.amount.toFixed(2)} (${pct.toFixed(0)}%)</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-fill" style="width: ${pct}%"></div>
+                </div>
+            `;
+            categoryList.appendChild(row);
+        });
+
+    } catch (err) {
+        console.error('Error loading dashboard stats:', err);
     }
 }
 
