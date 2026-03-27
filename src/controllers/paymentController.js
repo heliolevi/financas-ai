@@ -40,8 +40,8 @@ const createCheckoutSession = async (req, res) => {
 
         res.json({ url: session.url });
     } catch (err) {
-        console.error('Erro ao criar sessão Stripe:', err);
-        res.status(500).json({ message: 'Erro ao iniciar pagamento' });
+        console.error('ERRO DETALHADO DO STRIPE:', err.message);
+        res.status(500).json({ message: 'Erro ao iniciar pagamento: ' + err.message });
     }
 };
 
