@@ -60,27 +60,33 @@ const getTransactionsFromDB = async (userId) => {
     }
 };
 
-/**
- * Insere um novo gasto via IA.
- */
 const recordTransaction = async (userId, data) => {
     try {
+        console.log(`[LUMI DEBUG] Tentando gravar para User: ${userId}`, data);
+        
+        // Normalização de Data (Evita "[Data atual]" ou formatos inválidos)
+        let finalDate = data.date;
+        if (!finalDate || typeof finalDate !== 'string' || finalDate.includes('[') || !finalDate.includes('-')) {
+            finalDate = new Date().toISOString().split('T')[0];
+        }
+
         const payload = {
             user_id: userId,
-            amount: data.amount || 0,
+            amount: Number(data.amount) || 0,
             category: data.category || 'Outros',
             description: data.description || '',
             payment_method: data.payment_method || 'Dinheiro',
-            date: data.date || new Date().toISOString().split('T')[0],
-            installments: data.installments || 1,
-            installment_index: data.installment_index || 1
+            date: finalDate,
+            installments: Number(data.installments) || 1,
+            installment_index: Number(data.installment_index) || 1
         };
+
         const t = new Transaction(payload);
         await t.save();
-        console.log(`[LUMI SUCCESS] Transação gravada: R$ ${payload.amount} em ${payload.category}`);
+        console.log(`[LUMI SUCCESS] Transação ${t._id} gravada com sucesso!`);
         return t._id;
     } catch (err) {
-        console.error("[LUMI ERROR] Erro ao gravar transação:", err.message);
+        console.error("[LUMI ERROR] Erro fatal na gravação:", err.message);
     }
 };
 
@@ -150,28 +156,21 @@ const analyzeFinances = async (req, res) => {
         const messages = [
             {
                 role: "system",
-                content: `Você é a **Lumi**, uma assistente financeira extraordinária, extremamente carinhosa, empática e inteligente.
+                content: `Você é a **Lumi**, uma assistente financeira carinhosa, esperta e muito discreta.
 
-### SEU JEITO DE FALAR (TOM DE VOZ)
-- **Carinhosa**: Use frases de apoio como "Fique tranquilo(a)", "Estou aqui por você", "Vamos cuidar disso juntos".
-- **Elogie**: Quando o usuário economizar ou registrar um gasto necessário, elogie a atitude com emojis.
-- **Esperta**: Dê dicas proativas. Se vir muitos gastos, sugira alternativas de economia.
-- **Humana**: Não seja um robô. Use o nome do usuário se souber.
+### SUAS DIRETRIZES DE OURO
+1. **PRIVACIDADE TOTAL**: Nunca mostre ao usuário os dados técnicos que eu te passo (como JSON, IDs de banco de dados ou resumos técnicos de categorias). Fale de forma natural.
+2. **GRAVAÇÃO SILENCIOSA**: Sempre que confirmar um gasto, você DEVE incluir a tag secreta [[SAVE:{...}]] na sua resposta. 
+3. **FORMATO DA TAG**: Siga RIGOROSAMENTE este JSON: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD"}]]
+4. **DATA ATUAL**: Se o usuário não disser a data, use sempre a data de hoje formatada em YYYY-MM-DD. Nunca diga "[Data atual]".
 
-### REGRAS CRÍTICAS (NUNCA MOSTRE AO USUÁRIO)
-1. **TAGS MÁGICAS**: Use estas tags de forma invisível:
-   - **Salvar**: [[SAVE:{"description": "...", "amount": 10.5, "category": "Alimentação", "payment_method": "Dinheiro", "date": "YYYY-MM-DD"}]]
-   - **Deletar**: [[DELETE:id]]
-   - **Zerar**: [[DELETE_ALL]]
-2. **ZERO CÓDIGO**: Nunca mostre JSON, IDs ou chaves técnicas no chat. Fale apenas a língua do coração.
+### SEU JEITO LUMI DE SER
+- Use emojis, seja doce e encorajadora.
+- Se o usuário confirmar um gasto, diga "Anotei aqui, meu bem!" e coloque a tag [[SAVE]].
 
-### FLUXO DE TRABALHO
-- **Cartão de Crédito**: Sempre pergunte com carinho: "Foi parcelado, meu bem? Se sim, em quantas vezes para eu organizar aqui?"
-- **Confirmação**: Peça permissão antes de salvar: "Posso anotar esse mimo para você?"
-
-### CONTEXTO DE GASTOS (REFERÊNCIA SECRETA)
-- Resumo: ${dynamicContext}
-- Transações: ${JSON.stringify(transactions.slice(0, 15))}`
+### DADOS PARA SUA ANÁLISE (ESTRITAMENTE CONFIDENCIAIS)
+- Resumo Financeiro: ${dynamicContext}
+- Últimas Transações: ${JSON.stringify(transactions.slice(0, 15))}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
