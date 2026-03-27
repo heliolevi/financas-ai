@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+require('./config/database'); // Inicializa a conexão com o MongoDB
 
 // Importação das rotas
 const authRoutes = require('./routes/auth');
