@@ -4,27 +4,36 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Caminho do arquivo do banco de dados SQLite
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 
+/**
+ * Conexão com o banco de dados.
+ * SQLite é um banco de dados em arquivo, ideal para projetos leves e protótipos.
+ */
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-        console.error('Error opening database:', err.message);
+        console.error('Erro ao abrir o banco de dados:', err.message);
     } else {
-        console.log('Connected to the SQLite database.');
+        console.log('Conectado ao banco de dados SQLite.');
         createTables();
     }
 });
 
+/**
+ * Criação da estrutura das tabelas (Schema).
+ * Dica: O comando 'CREATE TABLE IF NOT EXISTS' evita erros ao reiniciar o servidor.
+ */
 function createTables() {
     db.serialize(() => {
-        // Users table
+        // Tabela de Usuários (Login e Senha)
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             password TEXT
         )`);
 
-        // Transactions table
+        // Tabela de Transações (Os gastos do usuário)
         db.run(`CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -36,7 +45,7 @@ function createTables() {
             FOREIGN KEY (user_id) REFERENCES users (id)
         )`);
 
-        // Messages table (Memory)
+        // Tabela de Mensagens (Cérebro da Lumi - Histórico de Chat)
         db.run(`CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,

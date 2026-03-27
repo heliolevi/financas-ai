@@ -4,11 +4,16 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Inicializa o cliente da Groq (IA)
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// Helper to save message to database
+// --- FUNÇÕES AUXILIARES (HELPERS) ---
+
+/**
+ * Salva uma mensagem no histórico para que a Lumi tenha "memória".
+ */
 const saveMessage = (userId, role, content) => {
     return new Promise((resolve, reject) => {
         db.run(`INSERT INTO messages (user_id, role, content) VALUES (?, ?, ?)`, [userId, role, content], (err) => {
@@ -18,17 +23,21 @@ const saveMessage = (userId, role, content) => {
     });
 };
 
-// Helper to get message history
+/**
+ * Recupera as últimas conversas para dar contexto à IA.
+ */
 const getHistory = (userId, limit = 10) => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT role, content FROM messages WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?`, [userId, limit], (err, rows) => {
             if (err) reject(err);
-            else resolve(rows.reverse());
+            else resolve(rows.reverse()); // Inverte para ficar na ordem cronológica
         });
     });
 };
 
-// Helper to get user transactions for context
+/**
+ * Busca transações recentes para que a Lumi saiba o que o usuário já gastou.
+ */
 const getTransactions = (userId) => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT id, amount, category, description, payment_method, date FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT 20`, [userId], (err, rows) => {
@@ -38,7 +47,9 @@ const getTransactions = (userId) => {
     });
 };
 
-// Helper to record a transaction
+/**
+ * Insere um novo gasto via IA.
+ */
 const recordTransaction = (userId, data) => {
     return new Promise((resolve, reject) => {
         const { amount, category, description, payment_method, date } = data;
@@ -52,7 +63,9 @@ const recordTransaction = (userId, data) => {
     });
 };
 
-// Helper to delete a transaction
+/**
+ * Remove um gasto identificado pela IA via ID.
+ */
 const deleteTransactionById = (userId, id) => {
     return new Promise((resolve, reject) => {
         db.run(`DELETE FROM transactions WHERE id = ? AND user_id = ?`, [id, userId], function(err) {
@@ -62,19 +75,29 @@ const deleteTransactionById = (userId, id) => {
     });
 };
 
+// --- FUNÇÃO PRINCIPAL ---
+
+/**
+ * Lógica central da Lumi: 
+ * 1. Recebe a mensagem do usuário.
+ * 2. Junta com o histórico e dados do Dashboard.
+ * 3. Envia para a Groq.
+ * 4. Analisa a resposta em busca de tags mágicas [[SAVE]] ou [[DELETE]].
+ */
 const analyzeFinances = async (req, res) => {
     const userId = req.userId;
     const { message } = req.body;
 
     try {
-        // 1. Save user message
+        // 1. Salva a pergunta do usuário no banco
         await saveMessage(userId, 'user', message);
 
-        // 2. Fetch history and context
+        // 2. ColetaContexto: Memória e Transações
         const history = await getHistory(userId);
         const transactions = await getTransactions(userId);
         
-        // Calculate dynamic stats for AI context
+        // Dica: Calculamos os totais aqui para que a IA não precise fazer contas difíceis, 
+        // ela apenas interpreta os resultados já mastigados.
         const total = transactions.reduce((acc, t) => acc + t.amount, 0);
         const cats = {};
         transactions.forEach(t => cats[t.category] = (cats[t.category] || 0) + t.amount);
@@ -89,7 +112,7 @@ const analyzeFinances = async (req, res) => {
 
         const today = new Date().toISOString().split('T')[0];
 
-        // 3. Prepare prompt
+        // 3. Monta o Prompt do Sistema (A "Personalidade" da Lumi)
         const messages = [
             {
                 role: "system",
@@ -119,7 +142,7 @@ Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
 
-        // 4. Call AI
+        // 4. Envia para a API da Groq
         const completion = await groq.chat.completions.create({
             messages: messages,
             model: "llama-3.3-70b-versatile",
@@ -128,20 +151,21 @@ Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15
         let aiResponse = completion.choices[0].message.content;
         let dataChanged = false;
 
-        // 5. Parse for auto-registration tag
+        // 5. REGISTRO AUTOMÁTICO: Procura pela tag [[SAVE:...]] na resposta da IA
         const saveTagMatch = aiResponse.match(/\[\[SAVE:(.*?)\]\]/);
         if (saveTagMatch) {
             try {
                 const transactionData = JSON.parse(saveTagMatch[1]);
                 await recordTransaction(userId, transactionData);
                 dataChanged = true;
+                // Removemos a tag técnica antes de mostrar a resposta para o usuário final
                 aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/, "").trim();
             } catch (e) {
-                console.error("Error parsing/saving transaction from AI:", e);
+                console.error("Erro ao processar salvamento automático da IA:", e);
             }
         }
 
-        // 6. Parse for deletion tag
+        // 6. EXCLUSÃO AUTOMÁTICA: Procura pela tag [[DELETE:...]] na resposta da IA
         const deleteTagMatch = aiResponse.match(/\[\[DELETE:(.*?)\]\]/);
         if (deleteTagMatch) {
             try {
@@ -150,21 +174,21 @@ Histórico para referência (com IDs): ${JSON.stringify(transactions.slice(0, 15
                 dataChanged = true;
                 aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/, "").trim();
             } catch (e) {
-                console.error("Error parsing/deleting transaction from AI:", e);
+                console.error("Erro ao processar exclusão automática da IA:", e);
             }
         }
 
-        // 7. Save AI response to history
+        // 7. Salva a resposta da Lumi no histórico para manter a memória fluindo
         await saveMessage(userId, 'assistant', aiResponse);
 
         res.status(200).json({ 
             response: aiResponse,
-            transactionAdded: dataChanged // Re-using this flag to trigger refresh
+            transactionAdded: dataChanged // Este flag avisa o frontend para recarregar o Dashboard
         });
 
     } catch (error) {
         console.error('Groq AI Error:', error);
-        res.status(500).json({ message: 'Error processing AI request' });
+        res.status(500).json({ message: 'Erro ao processar sua solicitação na IA' });
     }
 };
 

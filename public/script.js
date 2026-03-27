@@ -2,7 +2,7 @@ const API_URL = '/api';
 let TOKEN = localStorage.getItem('token');
 let USERNAME = localStorage.getItem('username');
 
-// UI Elements
+// --- ELEMENTOS DA INTERFACE (DOM) ---
 const authSection = document.getElementById('auth-section');
 const dashboardSection = document.getElementById('dashboard-section');
 const authForm = document.getElementById('auth-form');
@@ -19,12 +19,13 @@ const chatMessages = document.getElementById('chat-messages');
 
 let isLogin = true;
 
-// Init
+// --- INICIALIZAÇÃO ---
+// Verifica se o usuário já tem um token salvo para pular o login
 if (TOKEN) {
     showDashboard();
 }
 
-// Auth Tabs
+// Alterna entre abas de Login e Cadastro
 loginTab.addEventListener('click', () => {
     isLogin = true;
     loginTab.classList.add('active');
@@ -39,7 +40,11 @@ registerTab.addEventListener('click', () => {
     authBtn.innerText = 'Criar Conta';
 });
 
-// Auth Submit
+// --- AUTENTICAÇÃO ---
+/**
+ * Lida com o envio do formulário de login/registro.
+ * Dica: Armazenamos o Token no localStorage para persistir a sessão.
+ */
 authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
@@ -69,10 +74,13 @@ authForm.addEventListener('submit', async (e) => {
             alert(data.message);
         }
     } catch (err) {
-        alert('Erro na conexão.');
+        alert('Erro na conexão com o servidor.');
     }
 });
 
+/**
+ * Alterna a visualização para o painel principal.
+ */
 function showDashboard() {
     authSection.classList.remove('active');
     dashboardSection.classList.add('active');
@@ -80,13 +88,20 @@ function showDashboard() {
     loadTransactions();
 }
 
+/**
+ * Limpa o token e recarrega a página.
+ */
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     location.reload();
 });
 
-// Transactions
+// --- TRANSAÇÕES (MÉTODOS MANUAIS) ---
+
+/**
+ * Cadastra um novo gasto via formulário manual.
+ */
 transactionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = {
@@ -109,15 +124,19 @@ transactionForm.addEventListener('submit', async (e) => {
 
         if (res.ok) {
             transactionForm.reset();
-            loadTransactions();
+            loadTransactions(); // Recarrega a lista e o dashboard
         } else {
-            alert('Erro ao salvar transação.');
+            alert('Erro ao salvar transação de forma manual.');
         }
     } catch (err) {
         alert('Erro na conexão.');
     }
 });
 
+/**
+ * Busca a lista de transações e renderiza na tela (Histórico).
+ * Dica: Chamamos o dashboard aqui para garantir que os números estejam sempre síncronos.
+ */
 async function loadTransactions() {
     try {
         const res = await fetch(API_URL + '/transactions', {
@@ -130,7 +149,7 @@ async function loadTransactions() {
         if (data.length === 0) {
             transactionList.innerHTML = '<p class="empty-msg">Nenhuma transação registrada.</p>';
             document.getElementById('total-amount').innerText = 'R$ 0,00';
-            loadDashboardStats(); // Refresh stats even if empty
+            loadDashboardStats(); 
             return;
         }
 
@@ -152,12 +171,18 @@ async function loadTransactions() {
         });
 
         document.getElementById('total-amount').innerText = `R$ ${total.toFixed(2)}`;
-        loadDashboardStats();
+        loadDashboardStats(); // Atualiza os cards coloridos e os alertas
     } catch (err) {
         console.error(err);
     }
 }
 
+// --- DASHBOARD E ANÁLISE ---
+
+/**
+ * Coleta os dados agregados para atualizar os cards de estatísticas.
+ * Lida com o cálculo do "Perigo" no cartão de crédito.
+ */
 async function loadDashboardStats() {
     try {
         const res = await fetch(API_URL + '/transactions/stats', {
@@ -165,13 +190,13 @@ async function loadDashboardStats() {
         });
         const data = await res.json();
 
-        // Update Stat Cards
+        // Atualiza Cards de Resumo
         document.getElementById('stat-total').innerText = `R$ ${data.total.toFixed(2)}`;
         
         const topCat = data.categories.length > 0 ? data.categories[0].category : '-';
         document.getElementById('stat-top-cat').innerText = topCat;
 
-        // Credit Card Danger Logic
+        // Lógica de Alerta de Perigo no Crédito (> 60% do total)
         const creditData = data.payments.find(p => p.payment_method === 'Cartão de Crédito');
         const creditAmount = creditData ? creditData.amount : 0;
         const creditPct = data.total > 0 ? (creditAmount / data.total) * 100 : 0;
@@ -182,13 +207,13 @@ async function loadDashboardStats() {
         const dangerZone = document.getElementById('danger-zone');
         if (creditPct > 60) {
             creditEl.className = 'stat-value danger';
-            dangerZone.classList.add('active');
+            dangerZone.classList.add('active'); // Mostra a faixa vermelha
         } else {
             creditEl.className = 'stat-value safe';
-            dangerZone.classList.remove('active');
+            dangerZone.classList.remove('active'); // Oculta a faixa
         }
 
-        // Category Bars
+        // Renderiza as Barras de Progresso por Categoria
         const categoryList = document.getElementById('category-list');
         categoryList.innerHTML = '';
         data.categories.forEach(cat => {
@@ -208,10 +233,13 @@ async function loadDashboardStats() {
         });
 
     } catch (err) {
-        console.error('Error loading dashboard stats:', err);
+        console.error('Erro ao carregar estatísticas do dashboard:', err);
     }
 }
 
+/**
+ * Função global para apagar transação (chamada pelos botões na lista).
+ */
 window.deleteTransaction = async (id) => {
     if (!confirm('Deseja apagar esta transação?')) return;
     try {
@@ -221,19 +249,23 @@ window.deleteTransaction = async (id) => {
         });
         loadTransactions();
     } catch (err) {
-        alert('Erro ao apagar.');
+        alert('Erro ao apagar registro.');
     }
 }
 
-// AI Chat
+// --- CHAT COM A IA (LUMI) ---
+
 sendBtn.addEventListener('click', sendToAI);
 aiInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendToAI(); });
 
+/**
+ * Envia a mensagem para a Lumi e processa a resposta.
+ * Dica: Se a Lumi salvar/deletar algo, o flag 'transactionAdded' virá como true.
+ */
 async function sendToAI() {
     const message = aiInput.value.trim();
     if (!message) return;
 
-    // Add user message to chat
     addChatMessage(message, 'user');
     aiInput.value = '';
 
@@ -250,6 +282,7 @@ async function sendToAI() {
         
         if (res.ok) {
             addChatMessage(data.response, 'ai');
+            // Recarrega tudo se a IA tiver alterado dados do banco
             if (data.transactionAdded) {
                 loadTransactions();
             }
@@ -257,14 +290,17 @@ async function sendToAI() {
             addChatMessage('Erro ao obter resposta da IA. Verifique sua chave API do Groq.', 'ai');
         }
     } catch (err) {
-        addChatMessage('Erro na conexão com a IA.', 'ai');
+        addChatMessage('Erro na conexão com a IA financeira.', 'ai');
     }
 }
 
+/**
+ * Adiciona balões na caixa de conversa.
+ */
 function addChatMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = sender === 'ai' ? 'ai-msg' : 'user-msg';
     msg.innerText = text;
     chatMessages.appendChild(msg);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
 }
