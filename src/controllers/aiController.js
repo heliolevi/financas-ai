@@ -106,9 +106,12 @@ const analyzeFinances = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
 
         // BLOQUEIO: Se o usuário não for pagante ('active'), a Lumi não responde lógica financeira profunda
-        if (user.subscriptionStatus !== 'active') {
+        // BYPASS PARA O CRIADOR (Hélio)
+        const isCreator = user.username === 'helio.vieira' || user.username === 'admin';
+        
+        if (user.subscriptionStatus !== 'active' && !isCreator) {
             return res.status(200).json({ 
-                response: "Olá! Para continuar analisando suas finanças com a minha inteligência completa, você precisa ser um assinate **Lumi Pro**. 🚀\n\nClique no botão **'Assinar Lumi Pro'** para liberar seu acesso agora por apenas R$ 20,00/mês!",
+                response: "Olá! Para continuar analisando suas finanças com a minha inteligência completa, você precisa ser um assinante **Lumi Pro**. 🚀\n\nClique no botão **'Assinar Lumi Pro'** para liberar seu acesso agora por apenas R$ 20,00/mês!",
                 transactionAdded: false,
                 requireSubscription: true 
             });
