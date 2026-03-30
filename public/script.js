@@ -25,6 +25,11 @@ const tPayment = document.getElementById('t-payment');
 
 let isLogin = true;
 
+// Estado da visualização do histórico (Fatura)
+let currentViewDate = new Date();
+let viewMonth = currentViewDate.getMonth() + 1; // 1-12
+let viewYear = currentViewDate.getFullYear();
+
 // --- INICIALIZAÇÃO ---
 // Verifica se o usuário já tem um token salvo para pular o login
 if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
@@ -107,6 +112,7 @@ function showDashboard() {
     loadTransactions();
     // loadDashboardStats() já é chamado dentro de loadTransactions
     updateSubscriptionUI();
+    updateMonthDisplay(); // Define o mês inicial (Hoje)
     fetchProactiveInsight(USERNAME);
 }
 
@@ -156,6 +162,39 @@ async function updateSubscriptionUI() {
         }
     }
 }
+
+/**
+ * --- NAVEGAÇÃO DE FATURAS (MESES) ---
+ */
+const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function updateMonthDisplay() {
+    const monthDisplay = document.getElementById('current-month-display');
+    if (monthDisplay) {
+        monthDisplay.innerText = `${monthNames[viewMonth - 1]} ${viewYear}`;
+    }
+    loadTransactions(); // Recarrega a lista para o novo mês/ano
+}
+
+// Inicializa os botões de navegação
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'prev-month') {
+        viewMonth--;
+        if (viewMonth < 1) {
+             viewMonth = 12;
+             viewYear--;
+        }
+        updateMonthDisplay();
+    }
+    if (e.target.id === 'next-month') {
+        viewMonth++;
+        if (viewMonth > 12) {
+             viewMonth = 1;
+             viewYear++;
+        }
+        updateMonthDisplay();
+    }
+});
 
 /**
  * Funções de Exportação
@@ -281,7 +320,7 @@ transactionForm.addEventListener('submit', async (e) => {
  */
 async function loadTransactions() {
     try {
-        const res = await fetch(API_URL + '/transactions', {
+        const res = await fetch(`${API_URL}/transactions?month=${viewMonth}&year=${viewYear}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();

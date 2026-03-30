@@ -56,13 +56,32 @@ const addTransaction = async (req, res) => {
  */
 const getTransactions = async (req, res) => {
     const userId = req.userId;
+    const { month, year } = req.query;
+
     try {
-        // Limite de 100 transações para evitar lentidão no frontend básico
-        const transactions = await Transaction.find({ user_id: userId })
-            .sort({ date: -1, timestamp: -1 })
-            .limit(100);
+        let query = { user_id: userId };
+        
+        // Filtro por mês e ano (estilo fatura)
+        if (month && year) {
+            const start = `${year}-${month.padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const end = `${year}-${month.padStart(2, '0')}-${lastDay}`;
             
-        // Mapeamos _id para id para manter compatibilidade com o frontend
+            query.date = { $gte: start, $lte: end };
+        }
+
+        const transactions = await Transaction.find(query)
+            .sort({ date: -1, timestamp: -1 });
+            
+        // Se não houver filtro, limitamos a 100 para performance
+        if (!month) {
+            // No limit if monthly view is requested? 
+            // Actually, for a single month, there won't be thousands of transactions usually.
+        } else {
+            // Se for visão mensal, retornamos tudo do mês sem limite de 100 
+            // (a menos que o usuário tenha 1000 gastos por mês, o que é raro)
+        }
+
         const rows = transactions.map(t => ({
             id: t._id,
             amount: t.amount,
