@@ -313,6 +313,60 @@ header {
     flex-direction: column;
 }
 
+.ai-header {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.ai-identity {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.lumi-avatar-container {
+    position: relative;
+    width: 64px;
+    height: 64px;
+}
+
+.lumi-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent-gold-solid);
+    box-shadow: 0 0 15px rgba(217, 119, 6, 0.4);
+}
+
+.online-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    background: #10b981;
+    border: 2px solid var(--bg-surface);
+    border-radius: 50%;
+}
+
+.ai-badge {
+    background: var(--accent-gold);
+    color: #000;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 800;
+}
+
+.ai-status {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.2rem;
+}
+
 .chat-input-area {
     background: rgba(0,0,0,0.3);
     padding: 0.5rem;
