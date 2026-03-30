@@ -557,3 +557,192 @@ header {
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(217, 119, 6, 0.4); }
+
+/* Navigation */
+.header-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-dim);
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.nav-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+}
+
+.nav-btn.active {
+    background: var(--accent-gold);
+    color: #000;
+    border-color: var(--accent-gold-solid);
+}
+
+/* Charts */
+.chart-card {
+    margin-bottom: 2rem;
+}
+
+.chart-card h2 {
+    margin-bottom: 1.5rem;
+}
+
+.chart-card canvas {
+    max-height: 300px;
+}
+
+/* Profile */
+.profile-container, .goals-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.profile-card h2, .goal-card h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-gold);
+}
+
+.profile-card h3 {
+    color: var(--text-gold);
+    font-size: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.fixed-expense-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    padding: 0.8rem 1rem;
+    border-radius: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.danger-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border: none;
+    color: #ef4444;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    transition: var(--transition);
+}
+
+.danger-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Goals */
+.goal-progress {
+    margin-bottom: 2rem;
+}
+
+.goal-progress canvas {
+    max-height: 250px;
+}
+
+.goal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.goal-stat {
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+    padding: 1rem;
+    border-radius: 1rem;
+}
+
+.goal-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+}
+
+.goal-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2rem;
+    color: var(--accent-gold-solid);
+}
+
+.indicators {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.indicator {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.indicator-label {
+    width: 180px;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+
+.indicator-bar {
+    flex: 1;
+    height: 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.indicator-fill {
+    height: 100%;
+    background: var(--accent-gold);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+.indicator-val {
+    width: 50px;
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Danger Alert */
+.danger-alert {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+    gap: 1rem;
+}
+
+.danger-alert.active {
+    display: flex;
+}
+
+.alert-icon {
+    font-size: 1.5rem;
+}
+
+.danger-alert p {
+    color: #ef4444;
+    font-weight: 500;
+}

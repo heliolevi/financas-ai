@@ -8,19 +8,40 @@ const userSchema = new mongoose.Schema({
     subscriptionStatus: { type: String, default: 'inactive' },
     
     // Perfil Financeiro
-    grossIncome: { type: Number, default: 0 },
-    netIncome: { type: Number, default: 0 },
-    bankName: { type: String, default: '' },
-    bankBalance: { type: Number, default: 0 },
-    creditCardLimit: { type: Number, default: 0 },
-    creditCardUsed: { type: Number, default: 0 },
-    creditCardBill: { type: Number, default: 0 },
-    creditCardDueDate: { type: Number, default: 0 },
+    grossIncome: { type: Number, default: 0, min: 0, validate: { validator: Number.isFinite, message: 'Renda bruta inválida' }},
+    netIncome: { type: Number, default: 0, min: 0, validate: [{ validator: function(v) { return v <= this.grossIncome; }, message: 'Renda líquida não pode ser maior que a bruta' }, { validator: Number.isFinite, message: 'Renda líquida inválida' }]},
+    bankName: { type: String, default: '', maxlength: 100 },
+    bankBalance: { type: Number, default: 0, min: 0 },
+    creditCardLimit: { type: Number, default: 0, min: 0 },
+    creditCardUsed: { type: Number, default: 0, min: 0, validate: { validator: function(v) { return v <= this.creditCardLimit; }, message: 'Valor usado não pode exceder o limite do cartão' }},
+    creditCardBill: { type: Number, default: 0, min: 0 },
+    creditCardDueDate: { type: Number, default: 0, min: 1, max: 31 },
     fixedExpenses: [{
-        name: { type: String },
-        amount: { type: Number },
-        dueDate: { type: Number }
-    }]
+        name: { type: String, required: true, maxlength: 100 },
+        amount: { type: Number, required: true, min: 0 },
+        dueDate: { type: Number, required: true, min: 1, max: 31 }
+    }],
+    
+    // Metas e Orçamento
+    monthlyBudget: { type: Number, default: 0, min: 0 },
+    savingsGoal: { type: Number, default: 0, min: 0 },
+    savingsCurrent: { type: Number, default: 0, min: 0 },
+    
+    // Notificações
+    notificationsEnabled: { type: Boolean, default: true },
+    emailNotification: { type: Boolean, default: false },
+    pushNotification: { type: Boolean, default: false },
+    budgetAlertThreshold: { type: Number, default: 80, min: 0, max: 100 }
+});
+
+userSchema.pre('save', function(next) {
+    if (this.netIncome > this.grossIncome) {
+        this.netIncome = this.grossIncome;
+    }
+    if (this.creditCardUsed > this.creditCardLimit) {
+        this.creditCardUsed = this.creditCardLimit;
+    }
+    next();
 });
 
 // Middleware para comparar senhas (facilita no controller)

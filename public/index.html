@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="assets/lumi-avatar.png">
 </head>
@@ -46,6 +47,11 @@
         <section id="dashboard-section">
             <header>
                 <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
+                <div class="header-nav">
+                    <button id="nav-dashboard" class="nav-btn active">Dashboard</button>
+                    <button id="nav-profile" class="nav-btn">Perfil</button>
+                    <button id="nav-goals" class="nav-btn">Metas</button>
+                </div>
                 <div class="user-info">
                     <div class="user-badge">
                         <span id="user-display">Usuário</span>
@@ -56,7 +62,7 @@
                 </div>
             </header>
 
-            <main>
+            <main id="main-dashboard" class="active">
                 <!-- Alerts Area -->
                 <div id="danger-zone" class="danger-alert">
                     <span class="alert-icon">⚠️</span>
@@ -164,8 +170,12 @@
                         </div>
                     </div>
 
-                    <!-- AI Assistant -->
+                    <!-- Charts & AI -->
                     <div class="right-panel">
+                        <div class="glass-card chart-card">
+                            <h2>Gráfico de Gastos</h2>
+                            <canvas id="expensesChart"></canvas>
+                        </div>
                         <div class="glass-card ai-card">
                             <div class="ai-header">
                                 <div class="ai-identity">
@@ -187,6 +197,131 @@
                                 <button id="send-btn" aria-label="Enviar mensagem para Lumi">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Profile Section -->
+            <main id="main-profile" style="display: none;">
+                <div class="profile-container">
+                    <div class="glass-card profile-card">
+                        <h2>Meu Perfil Financeiro</h2>
+                        <form id="profile-form">
+                            <h3>Renda</h3>
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Renda Bruta (R$)</label>
+                                    <input type="number" id="p-gross-income" placeholder="0.00" step="0.01" min="0">
+                                </div>
+                                <div class="input-group">
+                                    <label>Renda Líquida (R$)</label>
+                                    <input type="number" id="p-net-income" placeholder="0.00" step="0.01" min="0">
+                                </div>
+                            </div>
+                            <h3>Banco</h3>
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Nome do Banco</label>
+                                    <input type="text" id="p-bank-name" placeholder="Nubank, Itaú, etc.">
+                                </div>
+                                <div class="input-group">
+                                    <label>Saldo Atual (R$)</label>
+                                    <input type="number" id="p-bank-balance" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <h3>Cartão de Crédito</h3>
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Limite Total (R$)</label>
+                                    <input type="number" id="p-cc-limit" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label>Valor Usado (R$)</label>
+                                    <input type="number" id="p-cc-used" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Fatura Atual (R$)</label>
+                                    <input type="number" id="p-cc-bill" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label>Dia de Vencimento</label>
+                                    <input type="number" id="p-cc-due" placeholder="1-31" min="1" max="31">
+                                </div>
+                            </div>
+                            <h3>Despesas Fixas</h3>
+                            <div id="fixed-expenses-list"></div>
+                            <button type="button" id="add-fixed-expense" class="secondary-btn">+ Adicionar Despesa Fixa</button>
+                            <h3>Orçamento e Metas</h3>
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label>Orçamento Mensal (R$)</label>
+                                    <input type="number" id="p-monthly-budget" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label>Meta de Economia (R$)</label>
+                                    <input type="number" id="p-savings-goal" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label>Economia Atual (R$)</label>
+                                <input type="number" id="p-savings-current" placeholder="0.00" step="0.01">
+                            </div>
+                            <button type="submit" class="main-btn">Salvar Perfil</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Goals Section -->
+            <main id="main-goals" style="display: none;">
+                <div class="goals-container">
+                    <div class="glass-card goal-card">
+                        <h2>Metas de Economia</h2>
+                        <div class="goal-progress">
+                            <canvas id="savingsChart"></canvas>
+                        </div>
+                        <div class="goal-stats">
+                            <div class="goal-stat">
+                                <span class="goal-label">Meta Mensal</span>
+                                <span id="goal-monthly" class="goal-value">R$ 0,00</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="goal-label">Atual</span>
+                                <span id="goal-current" class="goal-value">R$ 0,00</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="goal-label">Progresso</span>
+                                <span id="goal-progress" class="goal-value">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-card goal-card">
+                        <h2>Indicadores Financeiros</h2>
+                        <div class="indicators">
+                            <div class="indicator">
+                                <span class="indicator-label">Comprometimento de Renda</span>
+                                <div class="indicator-bar">
+                                    <div id="indicator-commitment" class="indicator-fill" style="width: 0%"></div>
+                                </div>
+                                <span id="indicator-commitment-val" class="indicator-val">0%</span>
+                            </div>
+                            <div class="indicator">
+                                <span class="indicator-label">Uso do Cartão</span>
+                                <div class="indicator-bar">
+                                    <div id="indicator-credit" class="indicator-fill" style="width: 0%"></div>
+                                </div>
+                                <span id="indicator-credit-val" class="indicator-val">0%</span>
+                            </div>
+                            <div class="indicator">
+                                <span class="indicator-label">Orçamento Usado</span>
+                                <div class="indicator-bar">
+                                    <div id="indicator-budget" class="indicator-fill" style="width: 0%"></div>
+                                </div>
+                                <span id="indicator-budget-val" class="indicator-val">0%</span>
                             </div>
                         </div>
                     </div>

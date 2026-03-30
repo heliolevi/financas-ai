@@ -10,7 +10,8 @@ const transactionSchema = new mongoose.Schema({
     installments: { type: Number, default: 1 },
     installment_index: { type: Number, default: 1 },
     group_id: { type: String }, // ID único para compras parceladas
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    autoCategorized: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

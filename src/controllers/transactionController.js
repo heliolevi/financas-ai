@@ -1,5 +1,13 @@
 const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
+const { categorize, suggestCategory } = require('../services/categorizer');
+
+const autoCategorize = (description, providedCategory) => {
+    if (providedCategory && providedCategory !== 'Outros') {
+        return providedCategory;
+    }
+    return categorize(description);
+};
 
 /**
  * Adiciona uma nova transação financeira vinculada ao usuário logado.
@@ -8,13 +16,16 @@ const addTransaction = async (req, res) => {
     const { amount, category, description, payment_method, date, installments = 1 } = req.body;
     const userId = req.userId;
 
-    if (!amount || !category || !payment_method || !date) {
-        return res.status(400).json({ message: 'Valor, categoria, método de pagamento e data são obrigatórios' });
+    if (!amount || !payment_method || !date) {
+        return res.status(400).json({ message: 'Valor, método de pagamento e data são obrigatórios' });
     }
 
     if (amount <= 0) {
         return res.status(400).json({ message: 'O valor da transação deve ser maior que zero' });
     }
+
+    const finalCategory = autoCategorize(description, category);
+    const categorySuggestion = suggestCategory(description);
 
     try {
         const numInstallments = parseInt(installments) || 1;
@@ -32,19 +43,23 @@ const addTransaction = async (req, res) => {
             const newTransaction = new Transaction({
                 user_id: userId,
                 amount: installmentAmount,
-                category,
+                category: finalCategory,
                 description: (description || 'Sem descrição') + descSuffix,
                 payment_method,
                 date: dateStr,
                 installments: numInstallments,
                 installment_index: i + 1,
-                group_id: groupId
+                group_id: groupId,
+                autoCategorized: category !== finalCategory
             });
 
             await newTransaction.save();
         }
 
-        res.status(201).json({ message: 'Transação(ões) registrada(s) com sucesso' });
+        res.status(201).json({ 
+            message: 'Transação(ões) registrada(s) com sucesso',
+            categorySuggestion: categorySuggestion.suggested !== finalCategory ? categorySuggestion : null
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Erro ao salvar transação' });
