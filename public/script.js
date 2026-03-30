@@ -31,6 +31,9 @@ if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
     showDashboard();
 }
 
+// Define data padrão de hoje no formulário
+document.getElementById('t-date').valueAsDate = new Date();
+
 // Alterna entre abas de Login e Cadastro
 loginTab.addEventListener('click', () => {
     isLogin = true;
@@ -57,7 +60,12 @@ authForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('password').value;
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
 
+    const originalBtnText = authBtn.innerText;
+
     try {
+        authBtn.disabled = true;
+        authBtn.innerText = 'Processando...';
+
         const res = await fetch(API_URL + endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -82,6 +90,9 @@ authForm.addEventListener('submit', async (e) => {
         }
     } catch (err) {
         alert('Erro na conexão com o servidor.');
+    } finally {
+        authBtn.disabled = false;
+        authBtn.innerText = originalBtnText;
     }
 });
 
@@ -231,7 +242,13 @@ transactionForm.addEventListener('submit', async (e) => {
         description: document.getElementById('t-description').value
     };
 
+    const submitBtn = transactionForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerText;
+
     try {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Salvando...';
+
         const res = await fetch(API_URL + '/transactions', {
             method: 'POST',
             headers: { 
@@ -243,12 +260,18 @@ transactionForm.addEventListener('submit', async (e) => {
 
         if (res.ok) {
             transactionForm.reset();
-            loadTransactions(); // Recarrega a lista e o dashboard
+            document.getElementById('t-date').valueAsDate = new Date(); // Reseta para hoje
+            loadTransactions(); 
+            document.getElementById('t-amount').focus(); // Foca no valor para novo registro rápido
         } else {
-            alert('Erro ao salvar transação de forma manual.');
+            const data = await res.json();
+            alert(data.message || 'Erro ao salvar transação.');
         }
     } catch (err) {
-        alert('Erro na conexão.');
+        alert('Erro na conexão com o servidor.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalText;
     }
 });
 
