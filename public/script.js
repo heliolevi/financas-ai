@@ -110,18 +110,25 @@ authForm.addEventListener('submit', async (e) => {
  * Alterna a visualização para o painel principal.
  */
 function showDashboard() {
+    console.log('--- showDashboard Iniciado ---');
     try {
-        if (!authSection || !dashboardSection) return;
+        if (!authSection || !dashboardSection) {
+            console.error('Erro: Seções de Auth/Dashboard não encontradas no DOM');
+            return;
+        }
         
         authSection.classList.remove('active');
         dashboardSection.classList.add('active');
-        if (userDisplay) userDisplay.innerText = USERNAME;
+        console.log('Sessões alternadas com sucesso');
 
-        updateSubscriptionUI(); // Chama antes para garantir o selo rápido
+        if (userDisplay) userDisplay.innerText = USERNAME || 'Usuário';
+
+        updateSubscriptionUI(); 
         updateMonthDisplay(); 
         fetchProactiveInsight(USERNAME);
+        console.log('Funções de carga disparadas');
     } catch (e) {
-        console.error('Erro ao iniciar Dashboard:', e);
+        console.error('CRASH no showDashboard:', e);
     }
 }
 
@@ -179,11 +186,19 @@ async function updateSubscriptionUI() {
 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 function updateMonthDisplay() {
-    const monthDisplay = document.getElementById('current-month-display');
-    if (monthDisplay) {
-        monthDisplay.innerText = `${monthNames[viewMonth - 1]} ${viewYear}`;
+    console.log('updateMonthDisplay disparado');
+    try {
+        const monthDisplay = document.getElementById('current-month-display');
+        if (monthDisplay) {
+            monthDisplay.innerText = `${monthNames[viewMonth - 1]} ${viewYear}`;
+            console.log('Display de mês atualizado para:', monthDisplay.innerText);
+        } else {
+            console.warn('Elemento current-month-display não encontrado');
+        }
+        loadTransactions(); 
+    } catch (e) {
+        console.error('Erro no updateMonthDisplay:', e);
     }
-    loadTransactions(); // Recarrega a lista para o novo mês/ano
 }
 
 // Inicializa os botões de navegação
@@ -329,12 +344,14 @@ transactionForm.addEventListener('submit', async (e) => {
  * Dica: Chamamos o dashboard aqui para garantir que os números estejam sempre síncronos.
  */
 async function loadTransactions() {
+    console.log('loadTransactions iniciando para:', viewMonth, viewYear);
     try {
         const res = await fetch(`${API_URL}/transactions?month=${viewMonth}&year=${viewYear}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();
-        currentTransactions = data; // Salva no estado global
+        console.log('Transações recebidas:', data.length);
+        currentTransactions = data; 
         
         let total = 0;
         transactionList.innerHTML = '';
