@@ -89,6 +89,8 @@ body {
     box-shadow: 0 6px 20px rgba(217, 119, 6, 0.5);
 }
 
+.main-btn:active { transform: scale(0.98); }
+
 /* Auth Section */
 #auth-section {
     display: none;
@@ -481,6 +483,12 @@ header {
     border-color: var(--text-gold);
 }
 
+/* Form Helper */
+.input-row {
+    display: flex;
+    gap: 1.5rem;
+}
+
 /* Responsive Rules */
 @media (max-width: 1200px) {
     .dashboard-grid { grid-template-columns: 1fr; }
@@ -488,11 +496,28 @@ header {
 }
 
 @media (max-width: 768px) {
-    #dashboard-section { padding: 1.5rem; }
-    header { flex-direction: column; gap: 1.5rem; text-align: center; }
-    .stats-container { grid-template-columns: 1fr; gap: 1rem; }
+    #dashboard-section { padding: 1rem; }
+    header { flex-direction: column; gap: 1rem; text-align: center; }
+    .user-info { flex-direction: column; width: 100%; }
+    .stats-container { grid-template-columns: 1fr; gap: 0.8rem; }
     .auth-container h1 { font-size: 2.2rem; }
-    .glass-card { padding: 1.5rem; }
+    .glass-card { padding: 1.2rem; border-radius: 1.5rem; }
+    
+    .input-row { flex-direction: column; gap: 1.5rem; }
+    
+    .month-selector { width: 100%; justify-content: center; }
+    
+    .main-btn, .pro-btn { width: 100%; padding: 1.2rem; font-size: 1.1rem; }
+    
+    .ai-identity { flex-direction: column; text-align: center; }
+    .chat-messages { padding: 0.5rem; }
+    .ai-msg, .user-msg { max-width: 95%; font-size: 0.9rem; }
+}
+
+@media (max-width: 480px) {
+    .auth-container h1 { font-size: 1.8rem; }
+    .stat-value { font-size: 1.7rem; }
+    .logo { font-size: 1.5rem; }
 }
 
 /* Premium Scrollbar */
