@@ -9,7 +9,17 @@ const ExcelJS = require('exceljs');
 exports.exportPDF = async (req, res) => {
     try {
         const userId = req.userId;
-        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 });
+        const { month, year } = req.query;
+        let query = { user_id: userId };
+        
+        if (month && year) {
+            const start = `${year}-${String(month).padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+            query.date = { $gte: start, $lte: end };
+        }
+
+        const transactions = await Transaction.find(query).sort({ date: -1 });
 
         const doc = new jsPDF();
         
@@ -65,7 +75,17 @@ exports.exportPDF = async (req, res) => {
 exports.exportExcel = async (req, res) => {
     try {
         const userId = req.userId;
-        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 });
+        const { month, year } = req.query;
+        let query = { user_id: userId };
+        
+        if (month && year) {
+            const start = `${year}-${String(month).padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+            query.date = { $gte: start, $lte: end };
+        }
+
+        const transactions = await Transaction.find(query).sort({ date: -1 });
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Transações');

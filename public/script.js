@@ -226,7 +226,7 @@ document.addEventListener('click', (e) => {
  */
 async function downloadReport(type) {
     try {
-        const res = await fetch(`${API_URL}/reports/${type}`, {
+        const res = await fetch(`${API_URL}/reports/${type}?month=${viewMonth}&year=${viewYear}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         
@@ -398,7 +398,7 @@ async function loadTransactions() {
  */
 async function loadDashboardStats() {
     try {
-        const res = await fetch(API_URL + '/transactions/stats', {
+        const res = await fetch(API_URL + `/transactions/stats?month=${viewMonth}&year=${viewYear}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();

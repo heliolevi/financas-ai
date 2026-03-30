@@ -128,17 +128,27 @@ const deleteTransaction = async (req, res) => {
  */
 const getDashboardStats = async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.userId);
+    const { month, year } = req.query;
     
     try {
+        let matchStage = { user_id: userId };
+        
+        if (month && year) {
+            const start = `${year}-${String(month).padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+            matchStage.date = { $gte: start, $lte: end };
+        }
+
         // Total Geral
         const totalResult = await Transaction.aggregate([
-            { $match: { user_id: userId } },
+            { $match: matchStage },
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
 
         // Por Categoria
         const byCategory = await Transaction.aggregate([
-            { $match: { user_id: userId } },
+            { $match: matchStage },
             { $group: { _id: "$category", amount: { $sum: "$amount" } } },
             { $sort: { amount: -1 } },
             { $project: { category: "$_id", amount: 1, _id: 0 } }
@@ -146,7 +156,7 @@ const getDashboardStats = async (req, res) => {
 
         // Por Método de Pagamento
         const byPayment = await Transaction.aggregate([
-            { $match: { user_id: userId } },
+            { $match: matchStage },
             { $group: { _id: "$payment_method", amount: { $sum: "$amount" } } },
             { $project: { payment_method: "$_id", amount: 1, _id: 0 } }
         ]);

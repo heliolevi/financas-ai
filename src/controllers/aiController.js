@@ -43,9 +43,18 @@ const getHistory = async (userId, limit = 10) => {
  */
 const getTransactionsFromDB = async (userId) => {
     try {
-        const transactions = await Transaction.find({ user_id: userId })
-            .sort({ date: -1, timestamp: -1 })
-            .limit(20);
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const start = `${year}-${month}-01`;
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        const end = `${year}-${month}-${lastDay}`;
+
+        const transactions = await Transaction.find({
+            user_id: userId,
+            date: { $gte: start, $lte: end }
+        }).sort({ date: -1, timestamp: -1 });
+
         return transactions.map(t => ({
             id: t._id,
             amount: t.amount,
