@@ -110,7 +110,6 @@ function showDashboard() {
     userDisplay.innerText = USERNAME;
 
     loadTransactions();
-    // loadDashboardStats() já é chamado dentro de loadTransactions
     updateSubscriptionUI();
     updateMonthDisplay(); // Define o mês inicial (Hoje)
     fetchProactiveInsight(USERNAME);
@@ -178,7 +177,7 @@ function updateMonthDisplay() {
 
 // Inicializa os botões de navegação
 document.addEventListener('click', (e) => {
-    if (e.target.id === 'prev-month') {
+    if (e.target.closest('#prev-month')) {
         viewMonth--;
         if (viewMonth < 1) {
              viewMonth = 12;
@@ -186,7 +185,7 @@ document.addEventListener('click', (e) => {
         }
         updateMonthDisplay();
     }
-    if (e.target.id === 'next-month') {
+    if (e.target.closest('#next-month')) {
         viewMonth++;
         if (viewMonth > 12) {
              viewMonth = 1;
@@ -448,7 +447,7 @@ window.deleteTransaction = async (id) => {
         
         if (res.ok) {
             loadTransactions();
-            loadDashboard();
+            loadDashboardStats();
         } else {
             const err = await res.json();
             alert(err.message);
@@ -497,7 +496,7 @@ async function sendMessage() {
 
         if (data.dataChanged) {
             loadTransactions();
-            loadDashboard();
+            loadDashboardStats();
         }
     } catch (e) {
         if (typingMsg.parentNode) chatMessages.removeChild(typingMsg);
