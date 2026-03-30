@@ -32,14 +32,17 @@ let viewYear = currentViewDate.getFullYear();
 
 let currentTransactions = []; // Armazena transações do mês atual para o delete/cache
 
-// --- INICIALIZAÇÃO ---
-// Verifica se o usuário já tem um token salvo para pular o login
-if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
-    showDashboard();
-}
+// --- INICIALIZAÇÃO SEGURA ---
+window.addEventListener('DOMContentLoaded', () => {
+    // Define data padrão de hoje no formulário
+    const tDate = document.getElementById('t-date');
+    if (tDate) tDate.valueAsDate = new Date();
 
-// Define data padrão de hoje no formulário
-document.getElementById('t-date').valueAsDate = new Date();
+    // Verifica se o usuário já tem um token salvo para pular o login
+    if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
+        showDashboard();
+    }
+});
 
 // Alterna entre abas de Login e Cadastro
 loginTab.addEventListener('click', () => {
@@ -107,14 +110,19 @@ authForm.addEventListener('submit', async (e) => {
  * Alterna a visualização para o painel principal.
  */
 function showDashboard() {
-    authSection.classList.remove('active');
-    dashboardSection.classList.add('active');
-    userDisplay.innerText = USERNAME;
+    try {
+        if (!authSection || !dashboardSection) return;
+        
+        authSection.classList.remove('active');
+        dashboardSection.classList.add('active');
+        if (userDisplay) userDisplay.innerText = USERNAME;
 
-    // updateMonthDisplay já chama loadTransactions e loadDashboardStats
-    updateMonthDisplay(); 
-    updateSubscriptionUI();
-    fetchProactiveInsight(USERNAME);
+        updateSubscriptionUI(); // Chama antes para garantir o selo rápido
+        updateMonthDisplay(); 
+        fetchProactiveInsight(USERNAME);
+    } catch (e) {
+        console.error('Erro ao iniciar Dashboard:', e);
+    }
 }
 
 /**
@@ -142,8 +150,9 @@ async function fetchProactiveInsight(username) {
  */
 async function updateSubscriptionUI() {
     const status = localStorage.getItem('subscriptionStatus');
-    const username = localStorage.getItem('username');
+    const username = (localStorage.getItem('username') || '').toLowerCase(); // Normaliza para comparação
     
+    // Blindagem de status para o administrador e helio.vieira
     const isPro = status === 'active' || username === 'helio.vieira' || username === 'admin';
     const proBadge = document.querySelector('.pro-badge');
 
