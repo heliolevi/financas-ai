@@ -47,7 +47,10 @@
         <section id="dashboard-section">
             <header>
                 <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
-                <div class="header-nav">
+                <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+                <div class="header-nav" id="header-nav">
                     <button id="nav-dashboard" class="nav-btn active">Dashboard</button>
                     <button id="nav-profile" class="nav-btn">Perfil</button>
                     <button id="nav-goals" class="nav-btn">Metas</button>
@@ -57,8 +60,8 @@
                         <span id="user-display">Usuário</span>
                         <span class="pro-badge" style="background: var(--text-dim);">FREE</span>
                     </div>
-                    <button id="upgrade-btn" class="pro-btn" style="display: none;">Fazer Upgrade 🚀</button>
-                    <button id="logout-btn">Sair</button>
+                    <button id="upgrade-btn" class="pro-btn" style="display: none;">Upgrade</button>
+                    <button id="logout-btn" class="logout-btn-mobile">Sair</button>
                 </div>
             </header>
 

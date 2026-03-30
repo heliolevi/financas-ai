@@ -144,8 +144,38 @@ function showDashboard() {
     }
 }
 
+// Mobile Menu Toggle
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const headerNav = document.getElementById('header-nav');
+
+if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', () => {
+        headerNav.classList.toggle('active');
+        mobileMenuBtn.classList.toggle('active');
+    });
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (headerNav && mobileMenuBtn) {
+        if (!headerNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+            headerNav.classList.remove('active');
+            mobileMenuBtn.classList.remove('active');
+        }
+    }
+});
+
+// Close mobile menu on navigation
+function closeMobileMenu() {
+    if (headerNav && mobileMenuBtn) {
+        headerNav.classList.remove('active');
+        mobileMenuBtn.classList.remove('active');
+    }
+}
+
 // Navigation
 navDashboard.addEventListener('click', () => {
+    closeMobileMenu();
     mainDashboard.style.display = 'block';
     mainProfile.style.display = 'none';
     mainGoals.style.display = 'none';
@@ -155,6 +185,7 @@ navDashboard.addEventListener('click', () => {
 });
 
 navProfile.addEventListener('click', () => {
+    closeMobileMenu();
     mainDashboard.style.display = 'none';
     mainProfile.style.display = 'block';
     mainGoals.style.display = 'none';
@@ -165,6 +196,7 @@ navProfile.addEventListener('click', () => {
 });
 
 navGoals.addEventListener('click', () => {
+    closeMobileMenu();
     mainDashboard.style.display = 'none';
     mainProfile.style.display = 'none';
     mainGoals.style.display = 'block';
