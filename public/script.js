@@ -94,7 +94,7 @@ function showDashboard() {
     userDisplay.innerText = USERNAME;
 
     loadTransactions();
-    loadDashboard();
+    // loadDashboardStats() já é chamado dentro de loadTransactions
     updateSubscriptionUI();
     fetchProactiveInsight(USERNAME);
 }
@@ -201,9 +201,8 @@ if (window.location.search.includes('payment=success')) {
  * Limpa o token e recarrega a página.
  */
 logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    location.reload();
+    localStorage.clear(); // Limpa tudo (token, username, status)
+    window.location.href = 'index.html'; // Garante o redirecionamento limpo
 });
 
 // Alterna visibilidade do campo de parcelas
