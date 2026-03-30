@@ -27,7 +27,7 @@ let isLogin = true;
 
 // --- INICIALIZAÇÃO ---
 // Verifica se o usuário já tem um token salvo para pular o login
-if (TOKEN) {
+if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
     showDashboard();
 }
 
