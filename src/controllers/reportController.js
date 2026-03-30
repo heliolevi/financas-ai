@@ -1,6 +1,6 @@
 const Transaction = require('../models/Transaction');
 const { jsPDF } = require('jspdf');
-require('jspdf-autotable');
+const autoTable = require('jspdf-autotable').default || require('jspdf-autotable');
 const ExcelJS = require('exceljs');
 
 /**
@@ -20,6 +20,7 @@ exports.exportPDF = async (req, res) => {
         
         // Data da geração
         doc.setFontSize(11);
+        doc.setTextColor(100, 100, 100);
         doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
         // Tabela de dados
@@ -37,7 +38,8 @@ exports.exportPDF = async (req, res) => {
             tableRows.push(rowData);
         });
 
-        doc.autoTable({
+        // Usando a função direta do autocable para Node.js
+        autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
             startY: 40,
@@ -45,15 +47,15 @@ exports.exportPDF = async (req, res) => {
             headStyles: { fillColor: [217, 119, 6] } // Cabeçalho Dourado
         });
 
-        const pdfBinary = doc.output();
+        const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
         
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=relatorio_lumi.pdf');
-        res.send(Buffer.from(pdfBinary, 'binary'));
+        res.send(pdfBuffer);
 
     } catch (err) {
         console.error('Erro ao gerar PDF:', err);
-        res.status(500).json({ message: 'Erro ao gerar PDF' });
+        res.status(500).json({ message: 'Erro ao gerar PDF: ' + err.message });
     }
 };
 
