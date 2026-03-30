@@ -14,8 +14,9 @@ exports.exportPDF = async (req, res) => {
         const doc = new jsPDF();
         
         // Título
-        doc.setFontSize(18);
-        doc.text('Relatório Financeiro - Lumi', 14, 20);
+        doc.setFontSize(22);
+        doc.setTextColor(217, 119, 6); // Cor Ouro Lumi
+        doc.text('Lumi Gold - Extrato Premium', 14, 20);
         
         // Data da geração
         doc.setFontSize(11);
@@ -41,7 +42,7 @@ exports.exportPDF = async (req, res) => {
             body: tableRows,
             startY: 40,
             theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] }
+            headStyles: { fillColor: [217, 119, 6] } // Cabeçalho Dourado
         });
 
         const pdfBinary = doc.output();
@@ -72,7 +73,8 @@ exports.exportExcel = async (req, res) => {
             { header: 'Descrição', key: 'description', width: 30 },
             { header: 'Categoria', key: 'category', width: 20 },
             { header: 'Valor (R$)', key: 'amount', width: 15 },
-            { header: 'Forma de Pagamento', key: 'payment_method', width: 20 }
+            { header: 'Forma de Pagamento', key: 'payment_method', width: 20 },
+            { header: 'Lumi Gold Concierge', key: 'brand', width: 25 }
         ];
 
         transactions.forEach(t => {
@@ -81,7 +83,8 @@ exports.exportExcel = async (req, res) => {
                 description: t.description,
                 category: t.category,
                 amount: t.amount,
-                payment_method: t.payment_method
+                payment_method: t.payment_method,
+                brand: '💎 Lumi Gold Pro'
             });
         });
 

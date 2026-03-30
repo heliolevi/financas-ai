@@ -92,8 +92,31 @@ function showDashboard() {
     authSection.classList.remove('active');
     dashboardSection.classList.add('active');
     userDisplay.innerText = USERNAME;
-    updateSubscriptionUI();
+
     loadTransactions();
+    loadDashboard();
+    updateSubscriptionUI();
+    fetchProactiveInsight(USERNAME);
+}
+
+/**
+ * Busca e exibe o "Oi de boas-vindas" inteligente da Lumi.
+ */
+async function fetchProactiveInsight(username) {
+    try {
+        const res = await fetch(API_URL + '/ai/proactive', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+        if (data.insight) {
+            // Pequeno delay para parecer que a Lumi está digitando após o login
+            setTimeout(() => {
+                addChatMessage(data.insight, 'ai');
+            }, 1500);
+        }
+    } catch (e) {
+        console.error('Erro ao buscar insight proativo:', e);
+    }
 }
 
 /**
@@ -376,42 +399,49 @@ window.deleteTransaction = async (id) => {
 
 // --- CHAT COM A IA (LUMI) ---
 
-sendBtn.addEventListener('click', sendToAI);
-aiInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendToAI(); });
+sendBtn.addEventListener('click', sendMessage);
+aiInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
-/**
- * Envia a mensagem para a Lumi e processa a resposta.
- * Dica: Se a Lumi salvar/deletar algo, o flag 'transactionAdded' virá como true.
- */
-async function sendToAI() {
-    const message = aiInput.value.trim();
-    if (!message) return;
+async function sendMessage() {
+    const text = aiInput.value.trim();
+    if (!text) return;
 
-    addChatMessage(message, 'user');
+    addChatMessage(text, 'user');
     aiInput.value = '';
+    
+    // Indicador visual de carregamento
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'ai-msg';
+    typingMsg.style.opacity = '0.7';
+    typingMsg.innerText = 'Lumi está pensando...';
+    chatMessages.appendChild(typingMsg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
         const res = await fetch(API_URL + '/ai/analyze', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${TOKEN}`
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message: text })
         });
-        const data = await res.json();
         
-        if (res.ok) {
-            addChatMessage(data.response, 'ai');
-            // Recarrega tudo se a IA tiver alterado dados do banco
-            if (data.transactionAdded) {
-                loadTransactions();
-            }
-        } else {
-            addChatMessage('Erro ao obter resposta da IA. Verifique sua chave API do Groq.', 'ai');
+        chatMessages.removeChild(typingMsg);
+
+        if (!res.ok) throw new Error('Falha na resposta da IA');
+        
+        const data = await res.json();
+        addChatMessage(data.response, 'ai');
+
+        if (data.dataChanged) {
+            loadTransactions();
+            loadDashboard();
         }
-    } catch (err) {
-        addChatMessage('Erro na conexão com a IA financeira.', 'ai');
+    } catch (e) {
+        if (typingMsg.parentNode) chatMessages.removeChild(typingMsg);
+        addChatMessage("Estou com uma pequena interferência na conexão, meu bem. Pode tentar de novo? ✨", 'ai');
+        console.error('Erro AI:', e);
     }
 }
 

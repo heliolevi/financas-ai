@@ -248,4 +248,41 @@ const analyzeFinances = async (req, res) => {
     }
 };
 
-module.exports = { analyzeFinances };
+/**
+ * Gera um insight proativo automático baseado no histórico recente do usuário.
+ */
+const getProactiveInsight = async (req, res) => {
+    const userId = req.userId;
+    try {
+        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);
+        const user = await User.findById(userId);
+
+        if (transactions.length === 0) {
+            return res.json({ insight: `Olá ${user.username}! Sou a Lumi. Quando você começar a registrar seus gastos, poderei te dar dicas personalizadas. Que tal anotar sua primeira compra hoje? 😊` });
+        }
+
+        const summary = transactions.map(t => `${t.date}: ${t.description} (R$ ${t.amount}) [${t.category}]`).join('\n');
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "Você é a Lumi, uma assistente financeira de luxo. Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight curto (máx 2 frases) baseado nos gastos recentes dele. Seja doce, use emojis e chame-o pelo nome. Fale de padrões, curiosidades ou dê um elogio/alerta gentil. NUNCA mencione dados técnicos como JSON."
+                },
+                {
+                    role: "user",
+                    content: `Usuário: ${user.username}\n\nHistórico Recente:\n${summary}`
+                }
+            ],
+            model: "llama-3-8b-8192", // Modelo mais rápido para insights iniciais
+        });
+
+        const insight = completion.choices[0].message.content;
+        res.json({ insight });
+    } catch (err) {
+        console.error("Erro ao gerar insight proativo:", err);
+        res.status(500).json({ message: "Erro ao gerar insight" });
+    }
+};
+
+module.exports = { analyzeFinances, getProactiveInsight };

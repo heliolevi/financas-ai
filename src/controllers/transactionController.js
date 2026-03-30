@@ -57,7 +57,11 @@ const addTransaction = async (req, res) => {
 const getTransactions = async (req, res) => {
     const userId = req.userId;
     try {
-        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1, timestamp: -1 });
+        // Limite de 100 transações para evitar lentidão no frontend básico
+        const transactions = await Transaction.find({ user_id: userId })
+            .sort({ date: -1, timestamp: -1 })
+            .limit(100);
+            
         // Mapeamos _id para id para manter compatibilidade com o frontend
         const rows = transactions.map(t => ({
             id: t._id,
