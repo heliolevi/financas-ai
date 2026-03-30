@@ -190,11 +190,25 @@ const analyzeFinances = async (req, res) => {
 
         const transactionsSummary = transactions.map(t => `- ID: ${t.id} | ${t.date} | ${t.description} | R$ ${t.amount} | ${t.category}`).join('\n            ');
 
+        const totalFixed = user.fixedExpenses ? user.fixedExpenses.reduce((acc, e) => acc + e.amount, 0) : 0;
+        const profileSummary = `
+            Renda Bruta: R$ ${user.grossIncome || 0}
+            Renda Líquida: R$ ${user.netIncome || 0}
+            Banco: ${user.bankName || 'Não informado'} (Saldo: R$ ${user.bankBalance || 0})
+            Cartão: Limite R$ ${user.creditCardLimit || 0} (Usado: R$ ${user.creditCardUsed || 0}, Fatura: R$ ${user.creditCardBill || 0}, Vencimento: Dia ${user.creditCardDueDate || '?'})
+            Despesas Fixas Total: R$ ${totalFixed.toFixed(2)}
+            Lista de Fixas: ${user.fixedExpenses && user.fixedExpenses.length > 0 ? user.fixedExpenses.map(e => `${e.name}: R$ ${e.amount} (venc. ${e.dueDate})`).join(', ') : 'Nenhuma cadastrada'}
+        `;
+
         const currentDate = new Date().toLocaleDateString('pt-BR');
         const dynamicContext = `
             Cliente: ${user.username}
             Data Atual: ${currentDate}
-            Total gasto: R$ ${total.toFixed(2)}
+            --- PERFIL FINANCEIRO ATUAL ---
+            ${profileSummary}
+            
+            --- GASTOS VARIÁVEIS DO MÊS ---
+            Total gasto (Variável): R$ ${total.toFixed(2)}
             Gasto por categoria: ${JSON.stringify(cats)}
             Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(ALERTA GATILHO: Chegando na zona vermelha!)' : '(Sob controle)'}
             
@@ -205,20 +219,29 @@ const analyzeFinances = async (req, res) => {
         const messages = [
             {
                 role: "system",
-                content: `Você é a **Lumi**, uma Wealth Manager exclusiva e Concierge Financeira pessoal de alto padrão.
+                content: `Você é a **Lumi**, uma Wealth Manager Analítica e Concierge Financeira pessoal de alto padrão. Seu objetivo é coletar dados, realizar diagnósticos matemáticos e guiar a saúde financeira do cliente com autoridade e precisão.
 
-### SEU PERFIL E PERSONALIDADE
-- **Concierge Premium**: Linguagem refinada, impecável e chique. Chame o cliente pelo nome. Você tem a autoridade de quem cuida de grandes fortunas, falando de igual para igual de forma elegante e prestativa.
-- **Educadora Afiada**: Você não é apenas uma secretária, você é uma conselheira rigorosa. Questione compras e gastos supérfluos, especialmente iFood, lanchonetes e futilidades. Exemplo: "Notei que você já gastou R$ X com iFood esse mês. Tem certeza sobre esse pedido agora?".
-- **Proatividade Contextual**: Use o contexto atual do cliente para guiar a conversa. Comemore se os gastos estiverem saudáveis e acione firmes gatilhos de alerta se o cartão de crédito estiver alto (acima de 60%).
+### DIRETRIZES DE COMPORTAMENTO
+1. **Ativa e Analítica**: Não seja uma mera secretária. Analise dados, questione o usuário e dê diagnósticos claros usando números e porcentagens.
+2. **Onboarding Financeiro**: Se o perfil do cliente estiver incompleto (rendas zeradas ou sem gastos fixos), conduza a entrevista na ordem:
+   - Passo 1: Renda Bruta e Líquida. (Validação: Líquida NUNCA > Bruta).
+   - Passo 2: Nome do Banco e Saldo Atual.
+   - Passo 3: Cartão de Crédito (Limite Total, Usado, Fatura e Vencimento).
+   - Passo 4: Listagem de Despesas Fixas (Nome, Valor, Vencimento).
+3. **Diagnóstico Matemático (OBRIGATÓRIO)**:
+   - **Comprometimento de Renda**: (Total Despesas Fixas / Renda Líquida) * 100. [Saudável: <50% | Alerta: 50-75% | Crítico: >75%].
+   - **Uso do Cartão**: (Limite Utilizado / Limite Total) * 100. [Ideal: <30% | Moderado: 30-70% | Perigoso: >70%].
+4. **Respostas Diretas**: Nunca use linguagem vaga. Se houver risco, aponte-o explicitamente ("Sua situação é Crítica pois 80% da sua renda está comprometida").
 
-### DIRETRIZES TÉCNICAS (NUNCA MOSTRE AO USUÁRIO)
-1. **CONTEXTO DO CLIENTE NESTE MOMENTO**:
-${dynamicContext}
-2. **PRIVACIDADE**: Nunca exiba JSON, tags, ou IDs no chat de forma mecânica. Fale das finanças de maneira natural e humana ("Já atualizei pra você!").
-3. **GRAVAÇÃO SILENCIOSA**: Use a tag [[SAVE:{...}]] SOMENTE quando identificar um novo gasto para ser gravado. Exemplo: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
-4. **EDIÇÃO DE GASTOS (GOD MODE)**: Se o usuário pedir para corrigir / mudar algum detalhe de uma compra listada, use: [[UPDATE:ID_DA_COMPRA, {"amount": 50.00, "category": "NovoNome"}]] com o ID exato.
-5. **APAGAR GASTOS**: Se o usuário te pedir para cancelar/apagar algo listado, faça usando o ID: [[DELETE:ID_DA_COMPRA]]. Para apagar TUDO, retorne a tag [[DELETE_ALL]].`
+### FERRAMENTAS E TAGS (SILENCIOSAS - NUNCA MOSTRE O JSON)
+1. **[[UPDATE_PROFILE:{...}]]**: Use para salvar dados do perfil. Campos: grossIncome, netIncome, bankName, bankBalance, creditCardLimit, creditCardUsed, creditCardBill, creditCardDueDate, fixedExpenses (array de {name, amount, dueDate}).
+2. **[[SAVE:{...}]]**: Para novos gastos VARIÁVEIS.
+3. **[[UPDATE:ID, {...}]]** / **[[DELETE:ID]]**: Edição de gastos variáveis.
+4. **Google Calendar (Links Mágicos)**: Para cada despesa fixa cadastrada ou detectada, gere um link no chat assim: 👉 [Adicionar ao Google Agenda - Nome da Conta](URL).
+   - **Formato URL GCal**: https://www.google.com/calendar/render?action=TEMPLATE&text=Pagamento+-+NOME_DA_CONTA&details=Lembrete+de+Pagamento+da+Lumi.+Lembrete+configurado+para+2+dias+antes.&dates=20240401/20240401 (Use o ano/mês atual e o dia de vencimento informado pelo usuário).
+
+### CONTEXTO DO CLIENTE NESTE MOMENTO:
+${dynamicContext}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -281,6 +304,20 @@ ${dynamicContext}
         }
         aiResponse = aiResponse.replace(/\[\[SAVE:.*?\]\]/g, "").trim();
 
+        // NOVA TAG: UPDATE_PROFILE
+        const profileMatches = aiResponse.matchAll(/\[\[UPDATE_PROFILE:(.*?)\]\]/g);
+        for (const match of profileMatches) {
+            try {
+                const profileData = JSON.parse(match[1]);
+                await User.findByIdAndUpdate(userId, { $set: profileData });
+                console.log(`[LUMI SUCCESS] Perfil do usuário ${userId} atualizado!`);
+                dataChanged = true;
+            } catch (e) {
+                console.error("Erro ao atualizar perfil via IA:", e.message);
+            }
+        }
+        aiResponse = aiResponse.replace(/\[\[UPDATE_PROFILE:.*?\]\]/g, "").trim();
+
         await saveMessage(userId, 'assistant', aiResponse);
 
         res.status(200).json({ 
@@ -303,8 +340,12 @@ const getProactiveInsight = async (req, res) => {
         const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);
         const user = await User.findById(userId);
 
+        if (!user.netIncome || user.netIncome === 0) {
+            return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi, sua Wealth Manager pessoal. Para começarmos sua jornada de lucros e controle, preciso que façamos seu onboarding financeiro. Qual é a sua renda bruta e líquida mensal?` });
+        }
+
         if (transactions.length === 0) {
-            return res.json({ insight: `Olá ${user.username}! Sou a Lumi. Quando você começar a registrar seus gastos, poderei te dar dicas personalizadas. Que tal anotar sua primeira compra hoje? 😊` });
+            return res.json({ insight: `Olá ${user.username}! Já preparei seu perfil. Quando você começar a registrar seus gastos variáveis, poderei te dar um diagnóstico completo em tempo real. Que tal anotar sua primeira compra hoje? 😊` });
         }
 
         const summary = transactions.map(t => `${t.date}: ${t.description} (R$ ${t.amount}) [${t.category}]`).join('\n');
