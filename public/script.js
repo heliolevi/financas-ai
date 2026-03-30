@@ -30,6 +30,8 @@ let currentViewDate = new Date();
 let viewMonth = currentViewDate.getMonth() + 1; // 1-12
 let viewYear = currentViewDate.getFullYear();
 
+let currentTransactions = []; // Armazena transações do mês atual para o delete/cache
+
 // --- INICIALIZAÇÃO ---
 // Verifica se o usuário já tem um token salvo para pular o login
 if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
@@ -109,9 +111,9 @@ function showDashboard() {
     dashboardSection.classList.add('active');
     userDisplay.innerText = USERNAME;
 
-    loadTransactions();
+    // updateMonthDisplay já chama loadTransactions e loadDashboardStats
+    updateMonthDisplay(); 
     updateSubscriptionUI();
-    updateMonthDisplay(); // Define o mês inicial (Hoje)
     fetchProactiveInsight(USERNAME);
 }
 
@@ -323,6 +325,7 @@ async function loadTransactions() {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();
+        currentTransactions = data; // Salva no estado global
         
         let total = 0;
         transactionList.innerHTML = '';
