@@ -12,6 +12,10 @@ const addTransaction = async (req, res) => {
         return res.status(400).json({ message: 'Valor, categoria, método de pagamento e data são obrigatórios' });
     }
 
+    if (amount <= 0) {
+        return res.status(400).json({ message: 'O valor da transação deve ser maior que zero' });
+    }
+
     try {
         const numInstallments = parseInt(installments) || 1;
         const baseDate = new Date(date + 'T12:00:00'); // T12:00:00 evita problemas de fuso horário

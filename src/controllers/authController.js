@@ -14,6 +14,10 @@ const register = async (req, res) => {
         return res.status(400).json({ message: 'Usuário e senha são obrigatórios' });
     }
 
+    if (password.length < 6) {
+        return res.status(400).json({ message: 'A senha deve ter pelo menos 6 caracteres' });
+    }
+
     try {
         // Verifica se usuário já existe
         const existingUser = await User.findOne({ username });
