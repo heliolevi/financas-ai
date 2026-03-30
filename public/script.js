@@ -55,9 +55,8 @@ window.addEventListener('DOMContentLoaded', () => {
     // Verifica se o usuário já tem um token salvo para pular o login
     if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
         showDashboard();
-        }
-    });
-}
+    }
+});
 
 // Analytics Functions
 async function loadAnalytics() {
@@ -223,6 +222,53 @@ document.getElementById('import-btn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('refresh-prediction')?.addEventListener('click', loadPrediction);
+
+// --- AUTENTICAÇÃO ---
+loginTab.addEventListener('click', () => {
+    isLogin = true;
+    loginTab.classList.add('active');
+    registerTab.classList.remove('active');
+    authBtn.innerText = 'Entrar';
+});
+
+registerTab.addEventListener('click', () => {
+    isLogin = false;
+    registerTab.classList.add('active');
+    loginTab.classList.remove('active');
+    authBtn.innerText = 'Criar Conta';
+});
+
+authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const endpoint = isLogin ? '/auth/login' : '/auth/register';
+
+    const originalBtnText = authBtn.innerText;
+
+    try {
+        authBtn.disabled = true;
+        authBtn.innerText = 'Processando...';
+
+        const res = await fetch(API_URL + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            if (isLogin) {
+                TOKEN = data.token;
+                USERNAME = data.username;
+                localStorage.setItem('token', TOKEN);
+                localStorage.setItem('username', USERNAME);
+                localStorage.setItem('subscriptionStatus', data.subscriptionStatus);
+                showDashboard();
+            } else {
+                alert('Conta criada! Agora faça o login.');
+                loginTab.click();
+            }
         } else {
             alert(data.message);
         }
