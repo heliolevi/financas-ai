@@ -180,8 +180,9 @@
 
     <script>
         document.getElementById('checkout-btn').addEventListener('click', async () => {
-            const token = localStorage.getItem('lumiToken');
+            const token = localStorage.getItem('token'); // Corrigido de lumiToken para token
             if(!token) {
+                console.error('Sessão expirada ou token não encontrado');
                 window.location.href = 'index.html';
                 return;
             }
