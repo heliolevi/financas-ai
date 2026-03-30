@@ -14,7 +14,10 @@ const verifyToken = (req, res, next) => {
 
     jwt.verify(bearerToken, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({ message: 'Sessão expirada. Por favor, faça login novamente.' });
+            }
+            return res.status(401).json({ message: 'Acesso negado. Token inválido.' });
         }
         req.userId = decoded.id;
         next();

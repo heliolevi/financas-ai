@@ -330,6 +330,10 @@ transactionForm.addEventListener('submit', async (e) => {
         } else {
             const data = await res.json();
             alert(data.message || 'Erro ao salvar transação.');
+            if (res.status === 401 || res.status === 403) {
+                localStorage.clear();
+                window.location.href = 'index.html';
+            }
         }
     } catch (err) {
         alert('Erro na conexão com o servidor.');
