@@ -64,27 +64,46 @@ const recordTransaction = async (userId, data) => {
     try {
         console.log(`[LUMI DEBUG] Tentando gravar para User: ${userId}`, data);
         
-        // Normalização de Data (Evita "[Data atual]" ou formatos inválidos)
-        let finalDate = data.date;
-        if (!finalDate || typeof finalDate !== 'string' || finalDate.includes('[') || !finalDate.includes('-')) {
-            finalDate = new Date().toISOString().split('T')[0];
+        // Normalização de Data
+        let baseDateStr = data.date;
+        if (!baseDateStr || typeof baseDateStr !== 'string' || baseDateStr.includes('[') || !baseDateStr.includes('-')) {
+            baseDateStr = new Date().toISOString().split('T')[0];
         }
 
-        const payload = {
-            user_id: userId,
-            amount: Number(data.amount) || 0,
-            category: data.category || 'Outros',
-            description: data.description || '',
-            payment_method: data.payment_method || 'Dinheiro',
-            date: finalDate,
-            installments: Number(data.installments) || 1,
-            installment_index: Number(data.installment_index) || 1
-        };
+        const numInstallments = Number(data.installments) || 1;
+        const totalAmount = Number(data.amount) || 0;
+        const installmentAmount = totalAmount / numInstallments;
+        const baseDate = new Date(baseDateStr + 'T12:00:00');
+        const groupId = numInstallments > 1 ? 'LUMI-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5) : null;
 
-        const t = new Transaction(payload);
-        await t.save();
-        console.log(`[LUMI SUCCESS] Transação ${t._id} gravada com sucesso!`);
-        return t._id;
+        let firstId = null;
+
+        for (let i = 0; i < numInstallments; i++) {
+            const currentMonthDate = new Date(baseDate);
+            currentMonthDate.setMonth(baseDate.getMonth() + i);
+            const dateStr = currentMonthDate.toISOString().split('T')[0];
+
+            const descSuffix = numInstallments > 1 ? ` (${i + 1}/${numInstallments})` : '';
+
+            const payload = {
+                user_id: userId,
+                amount: installmentAmount,
+                category: data.category || 'Outros',
+                description: (data.description || '') + descSuffix,
+                payment_method: data.payment_method || 'Cartão de Crédito',
+                date: dateStr,
+                installments: numInstallments,
+                installment_index: i + 1,
+                group_id: groupId
+            };
+
+            const t = new Transaction(payload);
+            await t.save();
+            if (i === 0) firstId = t._id;
+        }
+
+        console.log(`[LUMI SUCCESS] ${numInstallments} parcelas gravadas com sucesso!`);
+        return firstId;
     } catch (err) {
         console.error("[LUMI ERROR] Erro fatal na gravação:", err.message);
     }
@@ -161,7 +180,8 @@ const analyzeFinances = async (req, res) => {
 ### SUAS DIRETRIZES DE OURO
 1. **PRIVACIDADE TOTAL**: Nunca mostre ao usuário os dados técnicos que eu te passo (como JSON, IDs de banco de dados ou resumos técnicos de categorias). Fale de forma natural.
 2. **GRAVAÇÃO SILENCIOSA**: Inclua a tag [[SAVE:{...}]] SOMENTE quando o usuário informar um gasto real. NUNCA inclua esta tag para saudações, mensagens de boas-vindas ou conversas triviais. 
-3. **FORMATO DA TAG**: Siga RIGOROSAMENTE este JSON: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD"}]]
+3. **FORMATO DA TAG**: Siga RIGOROSAMENTE este JSON: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
+- Se o usuário mencionar parcelas (ex: "em 3x"), coloque o número total no campo "installments".
 
 ### SEU JEITO LUMI DE SER
 - Use emojis, seja doce e encorajadora.

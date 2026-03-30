@@ -9,6 +9,7 @@ const transactionSchema = new mongoose.Schema({
     date: { type: String, required: true }, // Mantendo String para formato YYYY-MM-DD
     installments: { type: Number, default: 1 },
     installment_index: { type: Number, default: 1 },
+    group_id: { type: String }, // ID único para compras parceladas
     timestamp: { type: Date, default: Date.now }
 });
 

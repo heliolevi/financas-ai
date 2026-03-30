@@ -20,6 +20,7 @@ const addTransaction = async (req, res) => {
         const numInstallments = parseInt(installments) || 1;
         const baseDate = new Date(date + 'T12:00:00'); // T12:00:00 evita problemas de fuso horário
         const installmentAmount = amount / numInstallments;
+        const groupId = numInstallments > 1 ? 'GRP-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5) : null;
 
         for (let i = 0; i < numInstallments; i++) {
             const currentMonthDate = new Date(baseDate);
@@ -36,7 +37,8 @@ const addTransaction = async (req, res) => {
                 payment_method,
                 date: dateStr,
                 installments: numInstallments,
-                installment_index: i + 1
+                installment_index: i + 1,
+                group_id: groupId
             });
 
             await newTransaction.save();
@@ -63,7 +65,8 @@ const getTransactions = async (req, res) => {
             category: t.category,
             description: t.description,
             payment_method: t.payment_method,
-            date: t.date
+            date: t.date,
+            group_id: t.group_id
         }));
         res.status(200).json(rows);
     } catch (err) {
@@ -77,11 +80,20 @@ const getTransactions = async (req, res) => {
 const deleteTransaction = async (req, res) => {
     const userId = req.userId;
     const { id } = req.params;
+    const { deleteAll } = req.query;
+
     try {
-        const result = await Transaction.deleteOne({ _id: id, user_id: userId });
-        if (result.deletedCount === 0) {
+        const transaction = await Transaction.findOne({ _id: id, user_id: userId });
+        if (!transaction) {
             return res.status(404).json({ message: 'Transação não encontrada ou permissão negada' });
         }
+
+        if (deleteAll === 'true' && transaction.group_id) {
+            const result = await Transaction.deleteMany({ group_id: transaction.group_id, user_id: userId });
+            return res.status(200).json({ message: `${result.deletedCount} parcelas removidas com sucesso` });
+        }
+
+        await Transaction.deleteOne({ _id: id });
         res.status(200).json({ message: 'Transação removida com sucesso' });
     } catch (err) {
         res.status(500).json({ message: 'Erro ao deletar transação' });

@@ -353,17 +353,41 @@ async function loadDashboardStats() {
  * Função global para apagar transação (chamada pelos botões na lista).
  */
 window.deleteTransaction = async (id) => {
-    if (!confirm('Deseja apagar esta transação?')) return;
+    // Busca os dados da transação na lista atual para checar se tem grupo
+    const transaction = currentTransactions.find(t => t.id === id);
+    let url = API_URL + `/transactions/${id}`;
+
+    if (transaction && transaction.group_id) {
+        const choice = confirm('Esta transação faz parte de uma compra parcelada. Deseja apagar TODAS as parcelas deste grupo?\n\n[OK] Sim, apagar todas\n[Cancelar] Apagar apenas esta');
+        if (choice) {
+            url += '?deleteAll=true';
+        } else {
+            // Se o usuário clicar em cancelar no confirm, mas ainda quiser apagar a individual?
+            // O confirm padrão só tem 2 botões. Vamos mudar a lógica:
+            const secondConfirm = confirm('Deseja apagar APENAS esta parcela específica?');
+            if (!secondConfirm) return;
+        }
+    } else {
+        if (!confirm('Deseja apagar esta transação?')) return;
+    }
+
     try {
-        await fetch(API_URL + `/transactions/${id}`, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
-        loadTransactions();
-    } catch (err) {
-        alert('Erro ao apagar registro.');
+        
+        if (res.ok) {
+            loadTransactions();
+            loadDashboard();
+        } else {
+            const err = await res.json();
+            alert(err.message);
+        }
+    } catch (e) {
+        console.error('Erro ao deletar:', e);
     }
-}
+};
 
 // --- CHAT COM A IA (LUMI) ---
 
