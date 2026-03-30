@@ -11,6 +11,7 @@ const aiRoutes = require('./routes/ai');
 const paymentRoutes = require('./routes/payment');
 const reportRoutes = require('./routes/reports');
 const profileRoutes = require('./routes/profile');
+const analyticsRoutes = require('./routes/analytics');
 
 // Configuração do servidor Express
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/transactions', transactionRoutes); // Rotas de CRUD de gastos e es
 app.use('/api/ai', aiRoutes);             // Rotas de integração com a IA (Lumi)
 app.use('/api/reports', reportRoutes);    // Exportação de relatórios
 app.use('/api/profile', profileRoutes);   // Rotas de perfil e dashboard
+app.use('/api/analytics', analyticsRoutes); // Rotas de analytics (predição, assinaturas)
 
 // Fallback: Qualquer rota não encontrada na API serve o arquivo index.html (Single Page Application)
 app.use((req, res) => {

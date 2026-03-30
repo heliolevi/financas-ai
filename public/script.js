@@ -26,15 +26,18 @@ const tPayment = document.getElementById('t-payment');
 const mainDashboard = document.getElementById('main-dashboard');
 const mainProfile = document.getElementById('main-profile');
 const mainGoals = document.getElementById('main-goals');
+const mainAnalytics = document.getElementById('main-analytics');
 const navDashboard = document.getElementById('nav-dashboard');
 const navProfile = document.getElementById('nav-profile');
 const navGoals = document.getElementById('nav-goals');
+const navAnalytics = document.getElementById('nav-analytics');
 
 let isLogin = true;
 
 // Charts
 let expensesChart = null;
 let savingsChart = null;
+let predictionChart = null;
 
 // Estado da visualização do histórico (Fatura)
 let currentViewDate = new Date();
@@ -52,60 +55,174 @@ window.addEventListener('DOMContentLoaded', () => {
     // Verifica se o usuário já tem um token salvo para pular o login
     if (TOKEN && TOKEN !== 'null' && TOKEN !== 'undefined') {
         showDashboard();
-    }
-});
+        }
+    });
+}
 
-// Alterna entre abas de Login e Cadastro
-loginTab.addEventListener('click', () => {
-    isLogin = true;
-    loginTab.classList.add('active');
-    registerTab.classList.remove('active');
-    authBtn.innerText = 'Entrar';
-});
+// Analytics Functions
+async function loadAnalytics() {
+    loadPrediction();
+    loadSubscriptions();
+    loadAchievements();
+}
 
-registerTab.addEventListener('click', () => {
-    isLogin = false;
-    registerTab.classList.add('active');
-    loginTab.classList.remove('active');
-    authBtn.innerText = 'Criar Conta';
-});
-
-// --- AUTENTICAÇÃO ---
-/**
- * Lida com o envio do formulário de login/registro.
- * Dica: Armazenamos o Token no localStorage para persistir a sessão.
- */
-authForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const endpoint = isLogin ? '/auth/login' : '/auth/register';
-
-    const originalBtnText = authBtn.innerText;
-
+async function loadPrediction() {
     try {
-        authBtn.disabled = true;
-        authBtn.innerText = 'Processando...';
-
-        const res = await fetch(API_URL + endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+        const res = await fetch(API_URL + '/analytics/predict', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();
+        
+        document.getElementById('pred-avg').innerText = `R$ ${(data.prediction.expectedMonthly || 0).toFixed(2)}`;
+        document.getElementById('pred-projected').innerText = `R$ ${(data.prediction.projectedCurrentMonth || 0).toFixed(2)}`;
+        document.getElementById('pred-total').innerText = `R$ ${(data.prediction.totalProjected || 0).toFixed(2)}`;
+        
+        const surplusEl = document.getElementById('pred-surplus');
+        const surplus = data.prediction.surplusDeficit || 0;
+        surplusEl.innerText = `R$ ${Math.abs(surplus).toFixed(2)}`;
+        surplusEl.className = surplus >= 0 ? 'pred-value positive' : 'pred-value negative';
+        surplusEl.innerText = (surplus >= 0 ? '+' : '-') + surplusEl.innerText.slice(2);
+        
+        const insightsDiv = document.getElementById('prediction-insights');
+        insightsDiv.innerHTML = '';
+        (data.insights || []).forEach(insight => {
+            const div = document.createElement('div');
+            div.className = `pred-insight ${insight.type}`;
+            div.innerHTML = `<span>${insight.type === 'warning' ? '⚠️' : insight.type === 'success' ? '🎉' : 'ℹ️'}</span> ${insight.text}`;
+            insightsDiv.appendChild(div);
+        });
+    } catch (e) {
+        console.error('Erro ao carregar previsão:', e);
+    }
+}
 
-        if (res.ok) {
-            if (isLogin) {
-                TOKEN = data.token;
-                USERNAME = data.username;
-                localStorage.setItem('token', TOKEN);
-                localStorage.setItem('username', USERNAME);
-                localStorage.setItem('subscriptionStatus', data.subscriptionStatus);
-                showDashboard();
-            } else {
-                alert('Conta criada! Agora faça o login.');
-                loginTab.click();
-            }
+async function loadSubscriptions() {
+    try {
+        const res = await fetch(API_URL + '/analytics/subscriptions', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+        
+        const list = document.getElementById('subscriptions-list');
+        list.innerHTML = '';
+        
+        (data.subscriptions || []).forEach(sub => {
+            const div = document.createElement('div');
+            div.className = 'subs-item';
+            div.innerHTML = `
+                <div>
+                    <div class="subs-name">${sub.name}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim)">${sub.category} • ${sub.frequency}</div>
+                </div>
+                <div class="subs-amount">R$ ${sub.avgAmount.toFixed(2)}</div>
+            `;
+            list.appendChild(div);
+        });
+        
+        document.getElementById('subs-total').innerText = `R$ ${(data.summary.monthlyTotal || 0).toFixed(2)}`;
+        document.getElementById('subs-yearly').innerText = `R$ ${(data.summary.yearlyEstimate || 0).toFixed(2)}`;
+    } catch (e) {
+        console.error('Erro ao carregar assinaturas:', e);
+    }
+}
+
+const achievements = [
+    { id: 'first_expense', name: 'Primeiro Passo', desc: 'Registre sua 1ª despesa', icon: '🎯' },
+    { id: 'ten_expenses', name: 'Começando Bem', desc: '10 despesas', icon: '📝' },
+    { id: 'fifty_expenses', name: 'Organizado', desc: '50 despesas', icon: '🏆' },
+    { id: 'hundred_expenses', name: 'Mestre Financeiro', desc: '100 despesas', icon: '👑' },
+    { id: 'goal_25', name: 'Quarto do caminho', desc: '25% da meta', icon: '🎯' },
+    { id: 'goal_50', name: 'Metade do caminho', desc: '50% da meta', icon: '🚀' },
+    { id: 'goal_100', name: 'Missão Cumprida', desc: '100% da meta', icon: '🏅' },
+    { id: 'under_budget', name: 'Within Limits', desc: 'No orçamento', icon: '✅' },
+    { id: 'low_card', name: 'Cartão Controlado', desc: '<30% cartão', icon: '💳' },
+    { id: 'import_data', name: 'Importador', desc: 'Importe extrato', icon: '📥' }
+];
+
+async function loadAchievements() {
+    try {
+        const res = await fetch(API_URL + '/profile/dashboard', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+        
+        const unlocked = [];
+        if ((data.stats.transactionCount || 0) >= 1) unlocked.push('first_expense');
+        if ((data.stats.transactionCount || 0) >= 10) unlocked.push('ten_expenses');
+        if ((data.stats.transactionCount || 0) >= 50) unlocked.push('fifty_expenses');
+        if ((data.stats.transactionCount || 0) >= 100) unlocked.push('hundred_expenses');
+        if ((data.stats.savingsProgress || 0) >= 25) unlocked.push('goal_25');
+        if ((data.stats.savingsProgress || 0) >= 50) unlocked.push('goal_50');
+        if ((data.stats.savingsProgress || 0) >= 100) unlocked.push('goal_100');
+        if ((data.stats.budgetUsed || 0) <= 100) unlocked.push('under_budget');
+        if ((data.stats.creditUsage || 0) < 30) unlocked.push('low_card');
+        
+        const progress = (unlocked.length / achievements.length) * 100;
+        
+        document.getElementById('achievement-badge').innerText = `${Math.round(progress)}%`;
+        document.getElementById('achievement-count').innerText = `${unlocked.length} de ${achievements.length} conquistas`;
+        document.getElementById('achievement-fill').style.width = `${progress}%`;
+        
+        const grid = document.getElementById('achievements-grid');
+        grid.innerHTML = '';
+        achievements.forEach(a => {
+            const isUnlocked = unlocked.includes(a.id);
+            const div = document.createElement('div');
+            div.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
+            div.innerHTML = `
+                <div class="achievement-icon">${a.icon}</div>
+                <div class="achievement-name">${a.name}</div>
+                <div class="achievement-desc">${a.desc}</div>
+            `;
+            grid.appendChild(div);
+        });
+    } catch (e) {
+        console.error('Erro ao carregar conquistas:', e);
+    }
+}
+
+// Import Functions
+document.getElementById('import-btn')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('import-file');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        document.getElementById('import-result').innerHTML = 'Selecione um arquivo primeiro!';
+        document.getElementById('import-result').className = 'error';
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const content = e.target.result;
+            const fileType = file.name.endsWith('.ofx') ? 'ofx' : 'csv';
+            
+            const res = await fetch(API_URL + '/transactions/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${TOKEN}`
+                },
+                body: JSON.stringify({ fileContent: content, fileType })
+            });
+            
+            const data = await res.json();
+            
+            document.getElementById('import-result').innerHTML = data.message || `${data.imported} transações importadas!`;
+            document.getElementById('import-result').className = 'success';
+            
+            loadTransactions();
+            loadDashboardStats();
+        } catch (err) {
+            document.getElementById('import-result').innerHTML = 'Erro ao importar: ' + err.message;
+            document.getElementById('import-result').className = 'error';
+        }
+    };
+    reader.readAsText(file);
+});
+
+document.getElementById('refresh-prediction')?.addEventListener('click', loadPrediction);
         } else {
             alert(data.message);
         }
@@ -200,11 +317,28 @@ navGoals.addEventListener('click', () => {
     mainDashboard.style.display = 'none';
     mainProfile.style.display = 'none';
     mainGoals.style.display = 'block';
+    mainAnalytics.style.display = 'none';
     navDashboard.classList.remove('active');
     navProfile.classList.remove('active');
     navGoals.classList.add('active');
+    navAnalytics.classList.remove('active');
     loadGoals();
 });
+
+if (navAnalytics) {
+    navAnalytics.addEventListener('click', () => {
+        closeMobileMenu();
+        mainDashboard.style.display = 'none';
+        mainProfile.style.display = 'none';
+        mainGoals.style.display = 'none';
+        mainAnalytics.style.display = 'block';
+        navDashboard.classList.remove('active');
+        navProfile.classList.remove('active');
+        navGoals.classList.remove('active');
+        navAnalytics.classList.add('active');
+        loadAnalytics();
+    });
+}
 
 async function loadProfile() {
     try {

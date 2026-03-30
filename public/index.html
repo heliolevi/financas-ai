@@ -52,8 +52,9 @@
                 </button>
                 <div class="header-nav" id="header-nav">
                     <button id="nav-dashboard" class="nav-btn active">Dashboard</button>
+                    <button id="nav-analytics" class="nav-btn">📈</button>
                     <button id="nav-profile" class="nav-btn">Perfil</button>
-                    <button id="nav-goals" class="nav-btn">Metas</button>
+                    <button id="nav-goals" class="nav-btn">🎯</button>
                 </div>
                 <div class="user-info">
                     <div class="user-badge">
@@ -331,6 +332,66 @@
                                 <span id="indicator-budget-val" class="indicator-val">0%</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Analytics Section -->
+            <main id="main-analytics" style="display: none;">
+                <div class="analytics-container">
+                    <div class="glass-card analytics-card">
+                        <h2>📊 Previsão de Gastos</h2>
+                        <div id="prediction-content">
+                            <div class="pred-stat">
+                                <span class="pred-label">Gasto Médio Mensal</span>
+                                <span id="pred-avg" class="pred-value">R$ 0,00</span>
+                            </div>
+                            <div class="pred-stat">
+                                <span class="pred-label">Projetado Mês Atual</span>
+                                <span id="pred-projected" class="pred-value">R$ 0,00</span>
+                            </div>
+                            <div class="pred-stat">
+                                <span class="pred-label">Fixo + Variável</span>
+                                <span id="pred-total" class="pred-value">R$ 0,00</span>
+                            </div>
+                            <div class="pred-stat">
+                                <span class="pred-label">Sobra/Falta</span>
+                                <span id="pred-surplus" class="pred-value">R$ 0,00</span>
+                            </div>
+                        </div>
+                        <div id="prediction-insights"></div>
+                        <button id="refresh-prediction" class="secondary-btn">🔄 Atualizar Previsão</button>
+                    </div>
+
+                    <div class="glass-card analytics-card">
+                        <h2>🔄 Assinaturas Recorrentes</h2>
+                        <div id="subscriptions-list"></div>
+                        <div class="subs-summary">
+                            <span>Total mensal: <strong id="subs-total">R$ 0,00</strong></span>
+                            <span>Ano: <strong id="subs-yearly">R$ 0,00</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card analytics-card">
+                        <h2>🏆 Minhas Conquistas</h2>
+                        <div class="achievements-progress">
+                            <div class="achievement-badge unlocked" id="achievement-badge">0%</div>
+                            <div class="achievement-info">
+                                <span id="achievement-count">0 de 0 conquistas</span>
+                                <div class="achievement-bar">
+                                    <div id="achievement-fill" class="achievement-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="achievements-grid"></div>
+                    </div>
+
+                    <div class="glass-card analytics-card">
+                        <h2>📥 Importar Extrato</h2>
+                        <p class="import-desc">Importe seu extrato bancário em CSV ou OFX para registrar automaticamente</p>
+                        <input type="file" id="import-file" accept=".csv,.ofx,.xml" class="import-input">
+                        <button id="import-btn" class="main-btn">Importar Transações</button>
+                        <div id="import-result"></div>
                     </div>
                 </div>
             </main>

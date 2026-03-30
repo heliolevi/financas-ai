@@ -191,4 +191,25 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-module.exports = { addTransaction, getTransactions, deleteTransaction, getDashboardStats };
+const importTransactions = async (req, res) => {
+    try {
+        const { fileContent, fileType } = req.body;
+        const userId = req.userId;
+        
+        if (!fileContent) {
+            return res.status(400).json({ message: 'Conteúdo do arquivo é obrigatório' });
+        }
+        
+        const { importTransactions: importFromService } = require('../services/importExtractor');
+        const imported = await importFromService(userId, fileContent, fileType || 'csv');
+        
+        res.status(201).json({ 
+            message: `${imported.length} transações importadas com sucesso`,
+            imported: imported.length
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao importar transações: ' + err.message });
+    }
+};
+
+module.exports = { addTransaction, getTransactions, deleteTransaction, getDashboardStats, importTransactions };

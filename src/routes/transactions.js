@@ -11,6 +11,8 @@ router.post('/', verifyToken, transactionController.addTransaction);
 router.get('/', verifyToken, transactionController.getTransactions);
 // Busca estatísticas para o Dashboard (totais, categorias, etc)
 router.get('/stats', verifyToken, transactionController.getDashboardStats);
+// Importa transações de arquivo CSV/OFX
+router.post('/import', verifyToken, transactionController.importTransactions);
 // Remove uma transação específica pelo ID
 router.delete('/:id', verifyToken, transactionController.deleteTransaction);
 
