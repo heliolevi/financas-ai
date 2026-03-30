@@ -728,6 +728,22 @@ async function sendMessage() {
     addChatMessage(text, 'user');
     aiInput.value = '';
     
+    // Animação do avatar - pensando
+    const lumiAvatar = document.getElementById('lumi-avatar');
+    const lumiStatus = document.getElementById('lumi-status');
+    const lumiTyping = document.getElementById('lumi-typing');
+    if (lumiAvatar) {
+        lumiAvatar.classList.add('lumi-thinking');
+        lumiAvatar.classList.remove('lumi-speaking');
+    }
+    if (lumiStatus) {
+        lumiStatus.classList.add('thinking');
+        lumiStatus.classList.remove('offline');
+    }
+    if (lumiTyping) {
+        lumiTyping.style.display = 'flex';
+    }
+    
     // Indicador visual de carregamento
     const typingMsg = document.createElement('div');
     typingMsg.className = 'ai-msg';
@@ -751,6 +767,26 @@ async function sendMessage() {
         if (!res.ok) throw new Error('Falha na resposta da IA');
         
         const data = await res.json();
+        
+        // Animação do avatar - falando
+        if (lumiAvatar) {
+            lumiAvatar.classList.remove('lumi-thinking');
+            lumiAvatar.classList.add('lumi-speaking');
+        }
+        if (lumiStatus) {
+            lumiStatus.classList.remove('thinking');
+        }
+        if (lumiTyping) {
+            lumiTyping.style.display = 'none';
+        }
+        
+        // Remove classe de fala após animação
+        setTimeout(() => {
+            if (lumiAvatar) {
+                lumiAvatar.classList.remove('lumi-speaking');
+            }
+        }, 1000);
+        
         addChatMessage(data.response, 'ai');
 
         if (data.dataChanged) {
@@ -759,6 +795,18 @@ async function sendMessage() {
         }
     } catch (e) {
         if (typingMsg.parentNode) chatMessages.removeChild(typingMsg);
+        
+        // Reset do avatar em caso de erro
+        if (lumiAvatar) {
+            lumiAvatar.classList.remove('lumi-thinking', 'lumi-speaking');
+        }
+        if (lumiStatus) {
+            lumiStatus.classList.remove('thinking');
+        }
+        if (lumiTyping) {
+            lumiTyping.style.display = 'none';
+        }
+        
         addChatMessage("Estou com uma pequena interferência na conexão, meu bem. Pode tentar de novo? ✨", 'ai');
         console.error('Erro AI:', e);
     }
@@ -779,6 +827,21 @@ function addChatMessage(text, sender) {
     msg.innerHTML = formattedText;
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Avatar interaction - clique para girar
+const lumiAvatarWrapper = document.getElementById('lumi-avatar-wrapper');
+const lumiAvatar = document.getElementById('lumi-avatar');
+
+if (lumiAvatarWrapper) {
+    lumiAvatarWrapper.addEventListener('click', () => {
+        if (lumiAvatar) {
+            lumiAvatar.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                lumiAvatar.style.transform = '';
+            }, 500);
+        }
+    });
 }
 
 // Charts

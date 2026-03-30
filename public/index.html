@@ -179,9 +179,13 @@
                         <div class="glass-card ai-card">
                             <div class="ai-header">
                                 <div class="ai-identity">
-                                    <div class="lumi-avatar-container">
-                                        <img src="assets/lumi-avatar.png" alt="Lumi" class="lumi-thumb">
-                                        <div class="online-indicator"></div>
+                                    <div class="lumi-avatar-container" id="lumi-avatar-wrapper">
+                                        <div class="lumi-glow"></div>
+                                        <img src="assets/lumi-avatar.png" alt="Lumi" class="lumi-thumb" id="lumi-avatar">
+                                        <div class="online-indicator" id="lumi-status"></div>
+                                        <div class="typing-dots" id="lumi-typing" style="display: none;">
+                                            <span></span><span></span><span></span>
+                                        </div>
                                     </div>
                                     <div>
                                         <h2>Lumi Concierge <span class="ai-badge">Gold Beta</span></h2>
