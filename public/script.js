@@ -154,25 +154,10 @@ exportPdfBtn.addEventListener('click', () => downloadReport('pdf'));
 exportExcelBtn.addEventListener('click', () => downloadReport('excel'));
 
 /**
- * Inicia o fluxo de pagamento do Stripe.
+ * Redireciona para a Landing Page de Upgrade (Efeito WOW).
  */
-upgradeBtn.addEventListener('click', async () => {
-    try {
-        upgradeBtn.innerText = 'Processando...';
-        const res = await fetch(API_URL + '/payments/create-checkout', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${TOKEN}` }
-        });
-        const data = await res.json();
-        if (data.url) {
-            window.location.href = data.url; // Redireciona para o Stripe
-        } else {
-            alert('Não foi possível iniciar o pagamento.');
-            upgradeBtn.innerText = 'Assinar Lumi Pro 🚀';
-        }
-    } catch (err) {
-        alert('Erro ao conectar com o serviço de pagamentos.');
-    }
+upgradeBtn.addEventListener('click', () => {
+    window.location.href = 'upgrade.html';
 });
 
 // Verifica se voltou de um pagamento bem-sucedido
