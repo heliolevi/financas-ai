@@ -124,8 +124,21 @@ const recordTransaction = async (userId, data) => {
 const deleteTransactionById = async (userId, id) => {
     try {
         await Transaction.deleteOne({ _id: id, user_id: userId });
+        console.log(`[LUMI SUCCESS] Transação ${id} deletada com sucesso!`);
     } catch (err) {
         console.error("Erro ao deletar transação:", err);
+    }
+};
+
+/**
+ * Atualiza um gasto identificado pela IA via ID com novos dados.
+ */
+const updateTransactionById = async (userId, id, updates) => {
+    try {
+        await Transaction.updateOne({ _id: id, user_id: userId }, { $set: updates });
+        console.log(`[LUMI SUCCESS] Transação ${id} atualizada com sucesso!`);
+    } catch (err) {
+        console.error("Erro ao atualizar transação:", err);
     }
 };
 
@@ -175,6 +188,8 @@ const analyzeFinances = async (req, res) => {
         const creditSpent = transactions.filter(t => t.payment_method === 'Cartão de Crédito').reduce((acc, t) => acc + t.amount, 0);
         const creditPct = total > 0 ? (creditSpent / total) * 100 : 0;
 
+        const transactionsSummary = transactions.map(t => `- ID: ${t.id} | ${t.date} | ${t.description} | R$ ${t.amount} | ${t.category}`).join('\n            ');
+
         const currentDate = new Date().toLocaleDateString('pt-BR');
         const dynamicContext = `
             Cliente: ${user.username}
@@ -182,6 +197,9 @@ const analyzeFinances = async (req, res) => {
             Total gasto: R$ ${total.toFixed(2)}
             Gasto por categoria: ${JSON.stringify(cats)}
             Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(ALERTA GATILHO: Chegando na zona vermelha!)' : '(Sob controle)'}
+            
+            --- ÚLTIMAS TRANSAÇÕES PARA EDIÇÃO (God Mode) ---
+            ${transactionsSummary || 'Nenhuma transação encontrada.'}
         `;
 
         const messages = [
@@ -197,11 +215,10 @@ const analyzeFinances = async (req, res) => {
 ### DIRETRIZES TÉCNICAS (NUNCA MOSTRE AO USUÁRIO)
 1. **CONTEXTO DO CLIENTE NESTE MOMENTO**:
 ${dynamicContext}
-2. **PRIVACIDADE**: Nunca exiba JSON, tags, ou dados de forma mecânica. Fale das finanças de maneira natural e humana.
-3. **GRAVAÇÃO SILENCIOSA**: Use a tag [[SAVE:{...}]] SOMENTE quando identificar um gasto para ser gravado. NUNCA use a tag atoa.
-4. **FORMATO DA TAG**: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
- - Para opções de parcelamento, altere o valor de installments.
-5. **APAGAR GASTOS**: Para apagar TODOS os gastos, retorne a tag [[DELETE_ALL]].`
+2. **PRIVACIDADE**: Nunca exiba JSON, tags, ou IDs no chat de forma mecânica. Fale das finanças de maneira natural e humana ("Já atualizei pra você!").
+3. **GRAVAÇÃO SILENCIOSA**: Use a tag [[SAVE:{...}]] SOMENTE quando identificar um novo gasto para ser gravado. Exemplo: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
+4. **EDIÇÃO DE GASTOS (GOD MODE)**: Se o usuário pedir para corrigir / mudar algum detalhe de uma compra listada, use: [[UPDATE:ID_DA_COMPRA, {"amount": 50.00, "category": "NovoNome"}]] com o ID exato.
+5. **APAGAR GASTOS**: Se o usuário te pedir para cancelar/apagar algo listado, faça usando o ID: [[DELETE:ID_DA_COMPRA]]. Para apagar TUDO, retorne a tag [[DELETE_ALL]].`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -230,6 +247,21 @@ ${dynamicContext}
             }
         }
         aiResponse = aiResponse.replace(/\[\[DELETE:.*?\]\]/g, "").trim();
+
+        const updateMatches = aiResponse.matchAll(/\[\[UPDATE:\s*(.*?)\s*,\s*(\{.*?\})\s*\]\]/g);
+        for (const match of updateMatches) {
+            try {
+                const idToUpdate = match[1].trim();
+                const updates = JSON.parse(match[2]);
+                if (idToUpdate) {
+                    await updateTransactionById(userId, idToUpdate, updates);
+                    dataChanged = true;
+                }
+            } catch (e) {
+                console.error("Erro ao fazer update via IA:", e.message);
+            }
+        }
+        aiResponse = aiResponse.replace(/\[\[UPDATE:.*?\]\]/g, "").trim();
 
         const saveMatches = aiResponse.matchAll(/\[\[SAVE:(.*?)\]\]/g);
         for (const match of saveMatches) {
