@@ -143,6 +143,44 @@
             filter: blur(40px);
         }
 
+        .strike-price {
+            text-decoration: line-through;
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            margin-bottom: -0.5rem;
+            display: block;
+            text-align: center;
+        }
+
+        .scarcity-badge {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .guarantee {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
         @media (max-width: 768px) {
             body { padding: 1rem; }
             .hero-title { font-size: 2.2rem; }
@@ -155,8 +193,9 @@
 </head>
 <body>
     <div class="upgrade-container">
-        <h1 class="hero-title">Chegou a hora do <br><span class="gradient-text">Máximo Controle.</span></h1>
-        <p class="hero-subtitle">Eleve sua experiência financeira com inteligência proativa e ferramentas que antes eram exclusivas de fortunas.</p>
+        <div class="scarcity-badge">🔥 Oferta de Lançamento: Vagas Limitadas</div>
+        <h1 class="hero-title">O fim da ansiedade com seu dinheiro <br><span class="gradient-text">Máximo Controle.</span></h1>
+        <p class="hero-subtitle">Junte-se a pessoas que já multiplicaram sua renda. Eleve sua experiência financeira com nossa IA exclusiva que age como o seu Diretor Financeiro pessoal.</p>
 
         <div class="features-grid">
             <div class="feature-card">
@@ -179,9 +218,16 @@
 
         <div class="pricing-section">
             <span class="badge">Plano Lumi Gold Pro</span>
-            <div class="price">R$ 29<span>,90/mês</span></div>
-            <p>Tenha paz de espírito financeira por menos de um café por dia.</p>
-            <button id="checkout-btn" class="subscribe-btn">ASSINAR LUMI GOLD PRO 🚀</button>
+            <div style="margin-top: 1.5rem">
+                <span class="strike-price">De R$ 99,90/mês por apenas:</span>
+                <div class="price">R$ 20<span>,00/mês</span></div>
+            </div>
+            <p style="font-weight: 600; color: var(--accent-gold);">Uma pizza pequena custa mais que a sua independência financeira.</p>
+            <p>Tenha paz de espírito o mês inteiro por menos de R$ 0,66 ao dia.</p>
+            <button id="checkout-btn" class="subscribe-btn">EU QUERO SER PRO AGORA 🚀</button>
+            <div class="guarantee">
+                <span>🛡️</span> Risco Zero: Cancele a qualquer momento com apenas 1 clique.
+            </div>
         </div>
 
         <a href="index.html" class="back-link">Voltar para o Dashboard</a>
