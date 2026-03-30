@@ -21,22 +21,31 @@ const updateProfile = async (req, res) => {
         } = req.body;
 
         const updateData = {};
-        if (grossIncome !== undefined) updateData.grossIncome = grossIncome;
-        if (netIncome !== undefined) updateData.netIncome = netIncome;
-        if (bankName !== undefined) updateData.bankName = bankName;
-        if (bankBalance !== undefined) updateData.bankBalance = bankBalance;
-        if (creditCardLimit !== undefined) updateData.creditCardLimit = creditCardLimit;
-        if (creditCardUsed !== undefined) updateData.creditCardUsed = creditCardUsed;
-        if (creditCardBill !== undefined) updateData.creditCardBill = creditCardBill;
-        if (creditCardDueDate !== undefined) updateData.creditCardDueDate = creditCardDueDate;
-        if (fixedExpenses !== undefined) updateData.fixedExpenses = fixedExpenses;
-        if (monthlyBudget !== undefined) updateData.monthlyBudget = monthlyBudget;
-        if (savingsGoal !== undefined) updateData.savingsGoal = savingsGoal;
-        if (savingsCurrent !== undefined) updateData.savingsCurrent = savingsCurrent;
-        if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled;
-        if (emailNotification !== undefined) updateData.emailNotification = emailNotification;
-        if (pushNotification !== undefined) updateData.pushNotification = pushNotification;
-        if (budgetAlertThreshold !== undefined) updateData.budgetAlertThreshold = budgetAlertThreshold;
+        if (grossIncome !== undefined) updateData.grossIncome = Math.max(0, Number(grossIncome) || 0);
+        if (netIncome !== undefined) updateData.netIncome = Math.max(0, Math.min(Number(netIncome) || 0, updateData.grossIncome || Infinity));
+        if (bankName !== undefined) updateData.bankName = String(bankName).slice(0, 100);
+        if (bankBalance !== undefined) updateData.bankBalance = Number(bankBalance) || 0;
+        if (creditCardLimit !== undefined) updateData.creditCardLimit = Math.max(0, Number(creditCardLimit) || 0);
+        if (creditCardUsed !== undefined) updateData.creditCardUsed = Math.max(0, Math.min(Number(creditCardUsed) || 0, creditCardLimit || Infinity));
+        if (creditCardBill !== undefined) updateData.creditCardBill = Math.max(0, Number(creditCardBill) || 0);
+        if (creditCardDueDate !== undefined) updateData.creditCardDueDate = Math.max(1, Math.min(31, Number(creditCardDueDate) || 0));
+        if (fixedExpenses !== undefined) {
+            const validExpenses = (fixedExpenses || [])
+                .filter(e => e && e.name && e.amount > 0 && e.dueDate >= 1 && e.dueDate <= 31)
+                .map(e => ({
+                    name: String(e.name).slice(0, 100),
+                    amount: Math.max(0, Number(e.amount)),
+                    dueDate: Math.max(1, Math.min(31, Number(e.dueDate)))
+                }));
+            updateData.fixedExpenses = validExpenses;
+        }
+        if (monthlyBudget !== undefined) updateData.monthlyBudget = Math.max(0, Number(monthlyBudget) || 0);
+        if (savingsGoal !== undefined) updateData.savingsGoal = Math.max(0, Number(savingsGoal) || 0);
+        if (savingsCurrent !== undefined) updateData.savingsCurrent = Math.max(0, Number(savingsCurrent) || 0);
+        if (notificationsEnabled !== undefined) updateData.notificationsEnabled = Boolean(notificationsEnabled);
+        if (emailNotification !== undefined) updateData.emailNotification = Boolean(emailNotification);
+        if (pushNotification !== undefined) updateData.pushNotification = Boolean(pushNotification);
+        if (budgetAlertThreshold !== undefined) updateData.budgetAlertThreshold = Math.max(0, Math.min(100, Number(budgetAlertThreshold) || 80));
 
         const user = await User.findByIdAndUpdate(
             req.userId,
@@ -54,8 +63,11 @@ const getDashboardData = async (req, res) => {
     try {
         const user = await User.findById(req.userId).select('-password');
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const startOfMonth = `${year}-${month}-01`;
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        const endOfMonth = `${year}-${month}-${lastDay}`;
 
         const transactions = await Transaction.find({
             user_id: req.userId,

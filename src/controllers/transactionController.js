@@ -58,7 +58,12 @@ const addTransaction = async (req, res) => {
 
         res.status(201).json({ 
             message: 'Transação(ões) registrada(s) com sucesso',
-            categorySuggestion: categorySuggestion.suggested !== finalCategory ? categorySuggestion : null
+            category: finalCategory,
+            autoCategorized: category !== finalCategory,
+            suggestion: category !== finalCategory ? {
+                suggested: categorySuggestion.suggested,
+                reason: `Detectamos que "${description}" pode ser ${categorySuggestion.suggested}`
+            } : null
         });
     } catch (err) {
         console.error(err);

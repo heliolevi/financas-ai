@@ -238,7 +238,7 @@ const analyzeFinances = async (req, res) => {
 2. **[[SAVE:{...}]]**: Para novos gastos VARIÁVEIS.
 3. **[[UPDATE:ID, {...}]]** / **[[DELETE:ID]]**: Edição de gastos variáveis.
 4. **Google Calendar (Links Mágicos)**: Para cada despesa fixa cadastrada ou detectada, gere um link no chat assim: 👉 [Adicionar ao Google Agenda - Nome da Conta](URL).
-   - **Formato URL GCal**: https://www.google.com/calendar/render?action=TEMPLATE&text=Pagamento+-+NOME_DA_CONTA&details=Lembrete+de+Pagamento+da+Lumi.+Lembrete+configurado+para+2+dias+antes.&dates=20240401/20240401 (Use o ano/mês atual e o dia de vencimento informado pelo usuário).
+   - Use o ano e mês ATUAIS para gerar os links. Exemplo para dia 15 do mês atual: https://www.google.com/calendar/render?action=TEMPLATE&text=Pagamento+-+NOME_DA_CONTA&details=Lembrete+de+Pagamento+da+Lumi.+Lembrete+configurado+para+2+dias+antes.&dates=YYYYMM15/YYYYMM15 (substitua YYYY pelo ano atual e MM pelo mês atual).
 
 ### CONTEXTO DO CLIENTE NESTE MOMENTO:
 ${dynamicContext}`
