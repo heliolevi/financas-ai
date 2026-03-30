@@ -276,7 +276,7 @@ async function loadTransactions() {
                 </div>
                 <div class="t-details">
                     <div class="t-amount">R$ ${t.amount.toFixed(2)}</div>
-                    <button class="t-delete" onclick="deleteTransaction(${t.id})">Apagar</button>
+                    <button class="t-delete" onclick="deleteTransaction('${t.id}')">Apagar</button>
                 </div>
             `;
             transactionList.appendChild(item);
