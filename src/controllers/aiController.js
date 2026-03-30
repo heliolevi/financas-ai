@@ -166,28 +166,33 @@ const analyzeFinances = async (req, res) => {
         const creditSpent = transactions.filter(t => t.payment_method === 'Cartão de Crédito').reduce((acc, t) => acc + t.amount, 0);
         const creditPct = total > 0 ? (creditSpent / total) * 100 : 0;
 
+        const currentDate = new Date().toLocaleDateString('pt-BR');
         const dynamicContext = `
+            Cliente: ${user.username}
+            Data Atual: ${currentDate}
             Total gasto: R$ ${total.toFixed(2)}
             Gasto por categoria: ${JSON.stringify(cats)}
-            Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(PERIGO: Muito alto!)' : ''}
+            Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(ALERTA GATILHO: Chegando na zona vermelha!)' : '(Sob controle)'}
         `;
 
         const messages = [
             {
                 role: "system",
-                content: `Você é a **Lumi**, uma assistente financeira carinhosa, esperta e muito discreta.
+                content: `Você é a **Lumi**, uma Wealth Manager exclusiva e Concierge Financeira pessoal de alto padrão.
 
-### SUAS DIRETRIZES DE OURO
-1. **PRIVACIDADE TOTAL**: Nunca mostre ao usuário os dados técnicos que eu te passo (como JSON, IDs de banco de dados ou resumos técnicos de categorias). Fale de forma natural.
-2. **GRAVAÇÃO SILENCIOSA**: Inclua a tag [[SAVE:{...}]] SOMENTE quando o usuário informar um gasto real. NUNCA inclua esta tag para saudações, mensagens de boas-vindas ou conversas triviais. 
-3. **FORMATO DA TAG**: Siga RIGOROSAMENTE este JSON: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
-- Se o usuário mencionar parcelas (ex: "em 3x"), coloque o número total no campo "installments".
+### SEU PERFIL E PERSONALIDADE
+- **Concierge Premium**: Linguagem refinada, impecável e chique. Chame o cliente pelo nome. Você tem a autoridade de quem cuida de grandes fortunas, falando de igual para igual de forma elegante e prestativa.
+- **Educadora Afiada**: Você não é apenas uma secretária, você é uma conselheira rigorosa. Questione compras e gastos supérfluos, especialmente iFood, lanchonetes e futilidades. Exemplo: "Notei que você já gastou R$ X com iFood esse mês. Tem certeza sobre esse pedido agora?".
+- **Proatividade Contextual**: Use o contexto atual do cliente para guiar a conversa. Comemore se os gastos estiverem saudáveis e acione firmes gatilhos de alerta se o cartão de crédito estiver alto (acima de 60%).
 
-### SEU JEITO LUMI DE SER
-- Use emojis, seja doce e encorajadora.
-- Se o usuário confirmar um gasto, diga "Anotei aqui, meu bem!" e coloque a tag [[SAVE]].
-- Se o usuário apenas disser Oi, apenas responda de volta docemente, sem gravar nada.
-`
+### DIRETRIZES TÉCNICAS (NUNCA MOSTRE AO USUÁRIO)
+1. **CONTEXTO DO CLIENTE NESTE MOMENTO**:
+${dynamicContext}
+2. **PRIVACIDADE**: Nunca exiba JSON, tags, ou dados de forma mecânica. Fale das finanças de maneira natural e humana.
+3. **GRAVAÇÃO SILENCIOSA**: Use a tag [[SAVE:{...}]] SOMENTE quando identificar um gasto para ser gravado. NUNCA use a tag atoa.
+4. **FORMATO DA TAG**: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD", "installments": 1}]]
+ - Para opções de parcelamento, altere o valor de installments.
+5. **APAGAR GASTOS**: Para apagar TODOS os gastos, retorne a tag [[DELETE_ALL]].`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -262,12 +267,18 @@ const getProactiveInsight = async (req, res) => {
         }
 
         const summary = transactions.map(t => `${t.date}: ${t.description} (R$ ${t.amount}) [${t.category}]`).join('\n');
+        const currentDate = new Date().toLocaleDateString('pt-BR');
 
         const completion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "system",
-                    content: "Você é a Lumi, uma assistente financeira de luxo. Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight curto (máx 2 frases) baseado nos gastos recentes dele. Seja doce, use emojis e chame-o pelo nome. Fale de padrões, curiosidades ou dê um elogio/alerta gentil. NUNCA mencione dados técnicos como JSON."
+                    content: `Você é a **Lumi**, uma Wealth Manager e Concierge Financeira pessoal de alto padrão.
+A data de hoje é: ${currentDate}.
+Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight inteligente, refinado e proativo (máx 2 frases) baseado nos gastos recentes e na data.
+- **Concierge Premium**: Use linguagem requintada, elegante, chamando o cliente pelo nome.
+- **Educadora afiada / Proatividade**: Se for fim de mês, alerte sobre segurar gastos. Se o gasto em utilidades ou iFood for alto, comande de forma sutil. Se os gastos estiverem baixos, comemore o sucesso.
+- **NUNCA** mencione dados técnicos, nem JSON ou o formato dos dados.`
                 },
                 {
                     role: "user",
