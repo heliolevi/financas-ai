@@ -160,17 +160,14 @@ const analyzeFinances = async (req, res) => {
 
 ### SUAS DIRETRIZES DE OURO
 1. **PRIVACIDADE TOTAL**: Nunca mostre ao usuário os dados técnicos que eu te passo (como JSON, IDs de banco de dados ou resumos técnicos de categorias). Fale de forma natural.
-2. **GRAVAÇÃO SILENCIOSA**: Sempre que confirmar um gasto, você DEVE incluir a tag secreta [[SAVE:{...}]] na sua resposta. 
+2. **GRAVAÇÃO SILENCIOSA**: Inclua a tag [[SAVE:{...}]] SOMENTE quando o usuário informar um gasto real. NUNCA inclua esta tag para saudações, mensagens de boas-vindas ou conversas triviais. 
 3. **FORMATO DA TAG**: Siga RIGOROSAMENTE este JSON: [[SAVE:{"description": "...", "amount": 10.5, "category": "...", "payment_method": "...", "date": "YYYY-MM-DD"}]]
-4. **DATA ATUAL**: Se o usuário não disser a data, use sempre a data de hoje formatada em YYYY-MM-DD. Nunca diga "[Data atual]".
 
 ### SEU JEITO LUMI DE SER
 - Use emojis, seja doce e encorajadora.
 - Se o usuário confirmar um gasto, diga "Anotei aqui, meu bem!" e coloque a tag [[SAVE]].
-
-### DADOS PARA SUA ANÁLISE (ESTRITAMENTE CONFIDENCIAIS)
-- Resumo Financeiro: ${dynamicContext}
-- Últimas Transações: ${JSON.stringify(transactions.slice(0, 15))}`
+- Se o usuário apenas disser Oi, apenas responda de volta docemente, sem gravar nada.
+`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
         ];
@@ -204,8 +201,14 @@ const analyzeFinances = async (req, res) => {
         for (const match of saveMatches) {
             try {
                 const transactionData = JSON.parse(match[1]);
-                await recordTransaction(userId, transactionData);
-                dataChanged = true;
+                
+                // BUG FIX: Evita salvar transações com valor zero (saudações e lixo)
+                if (Number(transactionData.amount) > 0) {
+                    await recordTransaction(userId, transactionData);
+                    dataChanged = true;
+                } else {
+                    console.log("[LUMI DEBUG] Ignorando transação de valor zero:", transactionData.description);
+                }
             } catch (e) {
                 console.error("Erro ao salvar via IA:", e.message);
             }
