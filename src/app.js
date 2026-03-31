@@ -1,3 +1,22 @@
+/**
+ * =============================================================================
+ * FINANÇAS AI - LUMI GOLD
+ * =============================================================================
+ * Servidor Express.js com API REST para gerenciamento financeiro pessoal.
+ * Inclui autenticação JWT, integração com IA (Groq/Llama), Stripe payments,
+ * importação de extratos (CSV/OFX/XML) e dashboard com estatísticas.
+ * 
+ * ESTRUTURA:
+ * - /api/auth     → Login, registro, dados do usuário
+ * - /api/transactions → CRUD de transações, estatísticas, importação
+ * - /api/ai      → Chat com Lumi (IA), análise de imagens
+ * - /api/profile → Perfil financeiro, metas, alertas
+ * - /api/analytics → Previsões, assinaturas, insights
+ * - /api/reports → Exportação PDF/Excel
+ * - /api/payments → Checkout Stripe, webhooks
+ * =============================================================================
+ */
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

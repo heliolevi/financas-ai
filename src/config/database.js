@@ -1,12 +1,20 @@
+/**
+ * =============================================================================
+ * CONEXÃO COM MONGODB ATLAS
+ * =============================================================================
+ * MongoDB é um banco de dados NoSQL baseado em documentos,
+ * excelente para persistência na nuvem (Netlify/Render/Heroku).
+ * =============================================================================
+ */
+
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 /**
- * Conexão com o MongoDB Atlas.
- * MongoDB é um banco de dados NoSQL baseado em documentos, 
- * excelente para persistência na nuvem (Netlify/Render/Heroku).
+ * Estabelece conexão com o MongoDB usando a URI do arquivo .env.
+ * @returns {Promise<void>}
  */
 const connectDB = async () => {
     try {

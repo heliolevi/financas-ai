@@ -1,8 +1,23 @@
+/**
+ * =============================================================================
+ * MIDDLEWARE DE AUTENTICAÇÃO JWT
+ * =============================================================================
+ * Verifica se o token JWT enviado no header Authorization é válido.
+ * Extrai o userId do token para ser usado nas rotas protegidas.
+ * =============================================================================
+ */
+
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
+/**
+ * Verifica o token JWT e anexa o userId ao request.
+ * @param {Object} req - Objeto de requisição do Express
+ * @param {Object} res - Objeto de resposta do Express
+ * @param {Function} next - Função next do middleware
+ */
 const verifyToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     

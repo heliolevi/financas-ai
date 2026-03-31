@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE AUTENTICAÇÃO
+ * =============================================================================
+ * Responsável por: Registro, Login, e recuperação de dados do usuário.
+ * JWT token é gerado com validade de 24h.
+ * =============================================================================
+ */
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
@@ -7,6 +16,11 @@ dotenv.config();
 
 /**
  * Registra um novo usuário no sistema.
+ * Validausername mínimo 3 caracteres e senha mínimo 6 caracteres.
+ * Hash da senha é gerado com bcrypt (8 rounds).
+ * 
+ * @param {Object} req - Requisição com { username, password }
+ * @param {Object} res - Resposta HTTP
  */
 const register = async (req, res) => {
     const { username, password } = req.body;
@@ -25,7 +39,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'Este nome de usuário já está em uso' });
         }
 
-        // Criptografia da senha
+        // Criptografia da senha (8 rounds = bom equilíbrio segurança/performance)
         const hashedPassword = bcrypt.hashSync(password, 8);
 
         const newUser = new User({
@@ -42,6 +56,10 @@ const register = async (req, res) => {
 
 /**
  * Realiza o login do usuário.
+ * Valida credenciais e retorna JWT token com dados do usuário.
+ * 
+ * @param {Object} req - Requisição com { username, password }
+ * @param {Object} res - Resposta HTTP com { token, username, subscriptionStatus }
  */
 const login = async (req, res) => {
     const { username, password } = req.body;
@@ -60,6 +78,7 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Senha inválida' });
         }
 
+        // Gera token JWT com ID do usuário (validade 24h = 86400 segundos)
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: 86400 
         });
@@ -77,6 +96,10 @@ const login = async (req, res) => {
 
 /**
  * Retorna os dados do usuário logado (útil para atualizar o status Pro).
+ * Remove o campo password da resposta por segurança.
+ * 
+ * @param {Object} req - Requisição com userId anexado pelo middleware
+ * @param {Object} res - Resposta HTTP com dados do usuário
  */
 const getMe = async (req, res) => {
     try {

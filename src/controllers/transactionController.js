@@ -1,7 +1,20 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE TRANSAÇÕES
+ * =============================================================================
+ * Responsável por: CRUD de transações, estatísticas do dashboard,
+ * importação de extratos e resumo diário.
+ * =============================================================================
+ */
+
 const Transaction = require('../models/Transaction');
 const mongoose = require('mongoose');
 const { categorize, suggestCategory } = require('../services/categorizer');
 
+/**
+ * Verifica se a categoria foi fornecida explicitamente ou precisa ser inferida.
+ * Se não for fornecida ou for "Outros", usa o categorizador automático.
+ */
 const autoCategorize = (description, providedCategory) => {
     if (providedCategory && providedCategory !== 'Outros') {
         return providedCategory;
@@ -11,11 +24,16 @@ const autoCategorize = (description, providedCategory) => {
 
 /**
  * Adiciona uma nova transação financeira vinculada ao usuário logado.
+ * Suporta parcelamento automático (cria múltiplas transações).
+ * 
+ * @param {Object} req - body: { amount, category, description, payment_method, date, installments }
+ * @param {Object} res - Retorna transação criada
  */
 const addTransaction = async (req, res) => {
     const { amount, category, description, payment_method, date, installments = 1 } = req.body;
     const userId = req.userId;
 
+    // Validação de campos obrigatórios
     if (!amount || !payment_method || !date) {
         return res.status(400).json({ message: 'Valor, método de pagamento e data são obrigatórios' });
     }
@@ -24,6 +42,7 @@ const addTransaction = async (req, res) => {
         return res.status(400).json({ message: 'O valor da transação deve ser maior que zero' });
     }
 
+    // Categorização automática se não informada
     const finalCategory = autoCategorize(description, category);
     const categorySuggestion = suggestCategory(description);
 
@@ -33,6 +52,7 @@ const addTransaction = async (req, res) => {
         const installmentAmount = amount / numInstallments;
         const groupId = numInstallments > 1 ? 'GRP-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5) : null;
 
+        // Cria uma transação para cada parcela
         for (let i = 0; i < numInstallments; i++) {
             const currentMonthDate = new Date(baseDate);
             currentMonthDate.setMonth(baseDate.getMonth() + i);
@@ -72,7 +92,11 @@ const addTransaction = async (req, res) => {
 };
 
 /**
- * Lista todas as transações do usuário.
+ * Lista todas as transações do usuário, com filtro opcional por mês/ano.
+ * Retorna no máximo 100 registros se não houver filtro (performance).
+ * 
+ * @param {Object} req - query: { month, year }
+ * @param {Object} res - Array de transações ordenadas por data decrescente
  */
 const getTransactions = async (req, res) => {
     const userId = req.userId;
@@ -81,6 +105,7 @@ const getTransactions = async (req, res) => {
     try {
         let query = { user_id: userId };
         
+        // Filtro por mês/ano (converte para range de datas)
         if (month && year) {
             const monthNum = parseInt(month, 10);
             const yearNum = parseInt(year, 10);
@@ -98,16 +123,8 @@ const getTransactions = async (req, res) => {
 
         const transactions = await Transaction.find(query)
             .sort({ date: -1, timestamp: -1 });
-            
-        // Se não houver filtro, limitamos a 100 para performance
-        if (!month) {
-            // No limit if monthly view is requested? 
-            // Actually, for a single month, there won't be thousands of transactions usually.
-        } else {
-            // Se for visão mensal, retornamos tudo do mês sem limite de 100 
-            // (a menos que o usuário tenha 1000 gastos por mês, o que é raro)
-        }
 
+        // Mapeia campos para response (remove campos internos)
         const rows = transactions.map(t => ({
             id: t._id,
             amount: t.amount,
@@ -124,7 +141,11 @@ const getTransactions = async (req, res) => {
 };
 
 /**
- * Remove uma transação.
+ * Remove uma transação específica.
+ * Se a transação faz parte de um grupo (parcelas), pode remover todas via query ?deleteAll=true
+ * 
+ * @param {Object} req - params: { id }, query: { deleteAll }
+ * @param {Object} res - Confirmação
  */
 const deleteTransaction = async (req, res) => {
     const userId = req.userId;
@@ -137,6 +158,7 @@ const deleteTransaction = async (req, res) => {
             return res.status(404).json({ message: 'Transação não encontrada ou permissão negada' });
         }
 
+        // Se tem group_id e deleteAll=true, remove todas as parcelas
         if (deleteAll === 'true' && transaction.group_id) {
             const result = await Transaction.deleteMany({ group_id: transaction.group_id, user_id: userId });
             return res.status(200).json({ message: `${result.deletedCount} parcelas removidas com sucesso` });
@@ -151,6 +173,10 @@ const deleteTransaction = async (req, res) => {
 
 /**
  * Agrega dados para compor o Dashboard usando MongoDB Aggregation.
+ * Retorna: total geral, breakdown por categoria, breakdown por método de pagamento.
+ * 
+ * @param {Object} req - query: { month, year }
+ * @param {Object} res - { total, categories: [{ category, amount }], payments: [{ payment_method, amount }] }
  */
 const getDashboardStats = async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.userId);
@@ -159,6 +185,7 @@ const getDashboardStats = async (req, res) => {
     try {
         let matchStage = { user_id: userId };
         
+        // Filtro por período
         if (month && year) {
             const monthNum = parseInt(month, 10);
             const yearNum = parseInt(year, 10);
@@ -173,13 +200,13 @@ const getDashboardStats = async (req, res) => {
             matchStage.date = { $gte: start, $lte: end };
         }
 
-        // Total Geral
+        // 1. Total Geral
         const totalResult = await Transaction.aggregate([
             { $match: matchStage },
             { $group: { _id: null, total: { $sum: "$amount" } } }
         ]);
 
-        // Por Categoria
+        // 2. Por Categoria
         const byCategory = await Transaction.aggregate([
             { $match: matchStage },
             { $group: { _id: "$category", amount: { $sum: "$amount" } } },
@@ -187,7 +214,7 @@ const getDashboardStats = async (req, res) => {
             { $project: { category: "$_id", amount: 1, _id: 0 } }
         ]);
 
-        // Por Método de Pagamento
+        // 3. Por Método de Pagamento
         const byPayment = await Transaction.aggregate([
             { $match: matchStage },
             { $group: { _id: "$payment_method", amount: { $sum: "$amount" } } },
@@ -204,6 +231,13 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
+/**
+ * Importa transações de arquivo (CSV, OFX, XML).
+ * Detecta formato automaticamente e usa importHash para evitar duplicatas.
+ * 
+ * @param {Object} req - body: { fileContent, fileType }
+ * @param {Object} res - { message, imported: count }
+ */
 const importTransactions = async (req, res) => {
     try {
         const { fileContent, fileType } = req.body;
