@@ -498,4 +498,75 @@ Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight inteligente, 
     }
 };
 
-module.exports = { analyzeFinances, getProactiveInsight };
+const analyzeImage = async (req, res) => {
+    const { image } = req.body;
+    const userId = req.userId;
+
+    if (!image) {
+        return res.status(400).json({ message: 'Imagem não fornecida' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+        const isCreator = user.username === 'helio.vieira' || user.username === 'admin';
+        if (user.subscriptionStatus !== 'active' && !isCreator) {
+            return res.status(403).json({ message: 'Recurso exclusivo para assinantes Lumi Pro' });
+        }
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: `Você é a **Lumi**, assistente financeira. Analise a imagem de nota fiscal/recibo e extraia os dados em formato JSON válido. 
+Retorne APENAS o JSON sem texto adicional.
+Campos: description (estabelecimento), amount (valor numérico), category (categoria), date (YYYY-MM-DD ou hoje).`
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "image_url", image_url: { url: image } }
+                    ]
+                }
+            ],
+            model: "llama-3.2-90b-vision-preview",
+        });
+
+        const response = completion.choices[0].message.content;
+        
+        let data;
+        try {
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                data = JSON.parse(jsonMatch[0]);
+            } else {
+                return res.status(400).json({ message: 'Não consegui extrair dados da imagem' });
+            }
+        } catch (e) {
+            console.error('Parse error:', e, response);
+            return res.status(400).json({ message: 'Formato de resposta inválido' });
+        }
+
+        if (!data || !data.amount || data.amount <= 0) {
+            return res.status(400).json({ message: 'Não consegui identificar o valor na nota' });
+        }
+
+        data.date = data.date || new Date().toISOString().split('T')[0];
+        data.payment_method = 'Cartão de Crédito';
+        
+        await recordTransaction(userId, data);
+        
+        res.json({ 
+            success: true, 
+            message: `Transação registrada: ${data.description} - R$ ${data.amount}`,
+            data 
+        });
+
+    } catch (err) {
+        console.error('Erro ao analisar imagem:', err);
+        res.status(500).json({ message: 'Erro ao processar imagem' });
+    }
+};
+
+module.exports = { analyzeFinances, getProactiveInsight, analyzeImage };

@@ -195,7 +195,11 @@ document.getElementById('import-btn')?.addEventListener('click', async () => {
     reader.onload = async (e) => {
         try {
             const content = e.target.result;
-            const fileType = file.name.endsWith('.ofx') ? 'ofx' : 'csv';
+            let fileType = 'csv';
+            if (file.name.endsWith('.ofx')) fileType = 'ofx';
+            else if (file.name.endsWith('.xml')) fileType = 'xml';
+            else if (content.includes('<OFX>')) fileType = 'ofx';
+            else if (content.trim().startsWith('<?xml') || content.includes('<extrato>')) fileType = 'xml';
             
             const res = await fetch(API_URL + '/transactions/import', {
                 method: 'POST',

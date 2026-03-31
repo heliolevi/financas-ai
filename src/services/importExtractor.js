@@ -13,6 +13,42 @@ function parseAmount(value) {
     return isNaN(num) ? 0 : num;
 }
 
+async function parseXML(xmlContent, userId) {
+    const transactions = [];
+    const transactionsMatch = xmlContent.match(/<transacao>([\s\S]*?)<\/transacao>/g);
+    
+    if (!transactionsMatch) return transactions;
+    
+    for (const transBlock of transactionsMatch) {
+        let dateMatch = transBlock.match(/<data>(\d{2})\/(\d{2})\/(\d{4})/);
+        let amountMatch = transBlock.match(/<valor>([^<]+)/);
+        let descMatch = transBlock.match(/<descricao>([^<]+)/) || transBlock.match(/<historico>([^<]+)/);
+        
+        if (dateMatch && amountMatch) {
+            const date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+            const amount = parseAmount(amountMatch[1]);
+            const description = descMatch ? descMatch[1].trim() : 'Importado';
+            
+            const hash = `${userId}-${date}-${Math.abs(amount)}-${description.substring(0, 20)}`;
+            transactions.push({
+                user_id: userId,
+                amount: Math.abs(amount),
+                category: categorize(description),
+                description: description,
+                payment_method: amount < 0 ? 'Cartão de Crédito' : 'Dinheiro',
+                date: date,
+                installments: 1,
+                installment_index: 1,
+                group_id: null,
+                imported: true,
+                importHash: hash
+            });
+        }
+    }
+    
+    return transactions;
+}
+
 async function parseOFX(ofxContent, userId) {
     const transactions = [];
     const lines = ofxContent.split('\n');
@@ -122,7 +158,9 @@ async function parseCSV(csvContent, userId) {
 async function importTransactions(userId, fileContent, fileType) {
     let transactions;
     
-    if (fileType === 'ofx' || fileContent.includes('<OFX>')) {
+    if (fileType === 'xml' || fileContent.trim().startsWith('<?xml') || fileContent.includes('<extrato>')) {
+        transactions = await parseXML(fileContent, userId);
+    } else if (fileType === 'ofx' || fileContent.includes('<OFX>')) {
         transactions = await parseOFX(fileContent, userId);
     } else {
         transactions = await parseCSV(fileContent, userId);
