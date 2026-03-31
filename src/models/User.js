@@ -8,14 +8,14 @@ const userSchema = new mongoose.Schema({
     subscriptionStatus: { type: String, default: 'inactive' },
     
     // Perfil Financeiro
-    grossIncome: { type: Number, default: 0, min: 0, validate: { validator: Number.isFinite, message: 'Renda bruta inválida' }},
-    netIncome: { type: Number, default: 0, min: 0, validate: [{ validator: function(v) { return v <= this.grossIncome; }, message: 'Renda líquida não pode ser maior que a bruta' }, { validator: Number.isFinite, message: 'Renda líquida inválida' }]},
+    grossIncome: { type: Number, default: 0, min: 0 },
+    netIncome: { type: Number, default: 0, min: 0 },
     bankName: { type: String, default: '', maxlength: 100 },
     bankBalance: { type: Number, default: 0, min: 0 },
     creditCardLimit: { type: Number, default: 0, min: 0 },
-    creditCardUsed: { type: Number, default: 0, min: 0, validate: { validator: function(v) { return v <= this.creditCardLimit || this.creditCardLimit === 0; }, message: 'Valor usado não pode exceder o limite do cartão' }},
+    creditCardUsed: { type: Number, default: 0, min: 0 },
     creditCardBill: { type: Number, default: 0, min: 0 },
-    creditCardDueDate: { type: Number, default: null, min: 1, max: 31 },
+    creditCardDueDate: { type: Number, default: null },
     fixedExpenses: [{
         name: { type: String, required: true, maxlength: 100 },
         amount: { type: Number, required: true, min: 0 },
