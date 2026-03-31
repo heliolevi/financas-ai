@@ -28,6 +28,12 @@ const upgradeBtn = document.getElementById('upgrade-btn');
 const proFeaturesBar = document.getElementById('pro-features-bar');
 const exportPdfBtn = document.getElementById('export-pdf-btn');
 const exportExcelBtn = document.getElementById('export-excel-btn');
+
+// Handle potentially missing elements
+if (!upgradeBtn) console.log('upgradeBtn não existe (simplified UI)');
+if (!proFeaturesBar) console.log('proFeaturesBar não existe (simplified UI)');
+if (!exportPdfBtn) console.log('exportPdfBtn não existe');
+if (!exportExcelBtn) console.log('exportExcelBtn não existe');
 const transactionForm = document.getElementById('transaction-form');
 const transactionList = document.getElementById('transaction-list');
 const aiInput = document.getElementById('ai-input');
@@ -35,6 +41,10 @@ const sendBtn = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
 const installmentGroup = document.getElementById('t-installments-group');
 const tPayment = document.getElementById('t-payment');
+
+// Handle removed HTML elements gracefully
+if (!installmentGroup) console.log('installmentGroup não existe (simplified UI)');
+if (!tPayment) console.log('tPayment não existe (simplified UI)');
 
 const mainDashboard = document.getElementById('main-dashboard');
 const mainProfile = document.getElementById('main-profile');
@@ -387,14 +397,7 @@ if (mobileMenuBtn) {
     });
 }
 
-// Logout
-logoutBtn.addEventListener('click', () => {
-    TOKEN = null;
-    USERNAME = null;
-    localStorage.clear();
-    authSection.classList.add('active');
-    dashboardSection.classList.remove('active');
-});
+// Logout handled by doLogout() below
 
 /* // Old navigation code commented out
 
@@ -648,22 +651,21 @@ async function fetchProactiveInsight(username) {
  */
 async function updateSubscriptionUI() {
     const status = localStorage.getItem('subscriptionStatus');
-    const username = (localStorage.getItem('username') || '').toLowerCase(); // Normaliza para comparação
+    const username = (localStorage.getItem('username') || '').toLowerCase();
     
-    // Blindagem de status para o administrador e helio.vieira
     const isPro = status === 'active' || username === 'helio.vieira' || username === 'admin';
     const proBadge = document.querySelector('.pro-badge');
 
     if (isPro) {
-        upgradeBtn.style.display = 'none';
-        proFeaturesBar.style.display = 'block';
+        if (upgradeBtn) upgradeBtn.style.display = 'none';
+        if (proFeaturesBar) proFeaturesBar.style.display = 'block';
         if (proBadge) {
             proBadge.innerText = 'PRO';
             proBadge.style.background = 'var(--accent-gold)';
         }
     } else {
-        upgradeBtn.style.display = 'block';
-        proFeaturesBar.style.display = 'none';
+        if (upgradeBtn) upgradeBtn.style.display = 'block';
+        if (proFeaturesBar) proFeaturesBar.style.display = 'none';
         if (proBadge) {
             proBadge.innerText = 'FREE';
             proBadge.style.background = 'var(--text-dim)';
@@ -766,20 +768,25 @@ if (window.location.search.includes('payment=success')) {
 /**
  * Limpa o token e recarrega a página.
  */
-logoutBtn.addEventListener('click', () => {
-    localStorage.clear(); // Limpa tudo (token, username, status)
-    window.location.href = 'index.html'; // Garante o redirecionamento limpo
-});
+function doLogout() {
+    TOKEN = null;
+    USERNAME = null;
+    localStorage.clear();
+    window.location.href = 'index.html';
+}
 
-// Alterna visibilidade do campo de parcelas
-tPayment.addEventListener('change', () => {
-    if (tPayment.value === 'Cartão de Crédito') {
-        installmentGroup.style.display = 'block';
-    } else {
-        installmentGroup.style.display = 'none';
-        document.getElementById('t-installments').value = 1;
-    }
-});
+logoutBtn.addEventListener('click', doLogout);
+
+// Handle removed HTML elements gracefully
+if (tPayment) {
+    tPayment.addEventListener('change', () => {
+        if (tPayment.value === 'Cartão de Crédito' && installmentGroup) {
+            installmentGroup.style.display = 'block';
+        } else if (installmentGroup) {
+            installmentGroup.style.display = 'none';
+        }
+    });
+}
 
 // --- TRANSAÇÕES (MÉTODOS MANUAIS) ---
 
@@ -788,21 +795,28 @@ tPayment.addEventListener('change', () => {
  */
 transactionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    const tAmount = document.getElementById('t-amount');
+    const tCategory = document.getElementById('t-category');
+    const tDescription = document.getElementById('t-description');
+    
     const payload = {
-        amount: parseFloat(document.getElementById('t-amount').value),
-        date: document.getElementById('t-date').value,
-        category: document.getElementById('t-category').value,
-        payment_method: document.getElementById('t-payment').value,
-        installments: parseInt(document.getElementById('t-installments').value) || 1,
-        description: document.getElementById('t-description').value
+        amount: parseFloat(tAmount.value),
+        date: new Date().toISOString().split('T')[0],
+        category: tCategory ? tCategory.value : 'Outros',
+        payment_method: 'Cartão de Crédito',
+        installments: 1,
+        description: tDescription ? tDescription.value : ''
     };
 
     const submitBtn = transactionForm.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerText;
+    const originalText = submitBtn ? submitBtn.innerText : 'Registrar';
 
     try {
-        submitBtn.disabled = true;
-        submitBtn.innerText = 'Salvando...';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Salvando...';
+        }
 
         const res = await fetch(API_URL + '/transactions', {
             method: 'POST',
@@ -814,10 +828,13 @@ transactionForm.addEventListener('submit', async (e) => {
         });
 
         if (res.ok) {
-            transactionForm.reset();
-            document.getElementById('t-date').valueAsDate = new Date(); // Reseta para hoje
+            if (tAmount) tAmount.value = '';
+            if (tDescription) tDescription.value = '';
             loadTransactions(); 
-            document.getElementById('t-amount').focus(); // Foca no valor para novo registro rápido
+            loadDashboardStats();
+            loadDailySummary();
+            
+            if (tAmount) tAmount.focus();
         } else {
             const data = await res.json();
             alert(data.message || 'Erro ao salvar transação.');
@@ -829,14 +846,15 @@ transactionForm.addEventListener('submit', async (e) => {
     } catch (err) {
         alert('Erro na conexão com o servidor.');
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = originalText;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalText;
+        }
     }
 });
 
 /**
  * Busca a lista de transações e renderiza na tela (Histórico).
- * Dica: Chamamos o dashboard aqui para garantir que os números estejam sempre síncronos.
  */
 async function loadTransactions() {
     console.log('loadTransactions iniciando para:', viewMonth, viewYear);
@@ -849,13 +867,23 @@ async function loadTransactions() {
         currentTransactions = data; 
         
         let total = 0;
-        transactionList.innerHTML = '';
+        const listEl = document.getElementById('transaction-list');
+        const fullListEl = document.getElementById('transaction-list-full');
+        
+        if (!listEl) {
+            console.warn('Elemento transaction-list não encontrado');
+            return;
+        }
+        
         if (data.length === 0) {
-            transactionList.innerHTML = '<p class="empty-msg">Nenhuma transação registrada.</p>';
-            document.getElementById('total-amount').innerText = 'R$ 0,00';
+            listEl.innerHTML = '<p class="empty-msg">Nenhuma transação registrada.</p>';
+            if (fullListEl) fullListEl.innerHTML = '<p class="empty-msg">Nenhuma transação.</p>';
             loadDashboardStats(); 
             return;
         }
+
+        listEl.innerHTML = '';
+        if (fullListEl) fullListEl.innerHTML = '';
 
         data.forEach(t => {
             total += t.amount;
@@ -871,11 +899,15 @@ async function loadTransactions() {
                     <button class="t-delete" onclick="deleteTransaction('${escapeHtml(t.id)}')">Apagar</button>
                 </div>
             `;
-            transactionList.appendChild(item);
+            listEl.appendChild(item);
+            
+            if (fullListEl) {
+                const fullItem = item.cloneNode(true);
+                fullListEl.appendChild(fullItem);
+            }
         });
 
-        document.getElementById('total-amount').innerText = `R$ ${total.toFixed(2)}`;
-        loadDashboardStats(); // Atualiza os cards coloridos e os alertas
+        loadDashboardStats();
     } catch (err) {
         console.error(err);
     }
@@ -885,7 +917,6 @@ async function loadTransactions() {
 
 /**
  * Coleta os dados agregados para atualizar os cards de estatísticas.
- * Lida com o cálculo do "Perigo" no cartão de crédito.
  */
 async function loadDashboardStats() {
     try {
@@ -894,49 +925,51 @@ async function loadDashboardStats() {
         });
         const data = await res.json();
 
-        // Atualiza Cards de Resumo
-        document.getElementById('stat-total').innerText = `R$ ${data.total.toFixed(2)}`;
+        const total = data.total || 0;
         
-        const topCat = data.categories.length > 0 ? data.categories[0].category : '-';
-        document.getElementById('stat-top-cat').innerText = topCat;
-
-        // Lógica de Alerta de Perigo no Crédito (> 60% do total)
-        const creditData = data.payments.find(p => p.payment_method === 'Cartão de Crédito');
-        const creditAmount = creditData ? creditData.amount : 0;
-        const creditPct = data.total > 0 ? (creditAmount / data.total) * 100 : 0;
+        // Quick stats no topo (mini-stats)
+        const miniToday = document.getElementById('mini-today');
+        const miniMonth = document.getElementById('mini-month');
+        const miniBudget = document.getElementById('mini-budget');
         
-        const creditEl = document.getElementById('stat-credit-pct');
-        creditEl.innerText = `${creditPct.toFixed(0)}%`;
+        if (miniMonth) miniMonth.innerText = `R$ ${total.toFixed(0)}`;
         
-        const dangerZone = document.getElementById('danger-zone');
-        if (creditPct > 60) {
-            creditEl.className = 'stat-value danger';
-            dangerZone.classList.add('active'); // Mostra a faixa vermelha
-        } else {
-            creditEl.className = 'stat-value safe';
-            dangerZone.classList.remove('active'); // Oculta a faixa
+        if (miniBudget) {
+            const userRes = await fetch(API_URL + '/profile', {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            const userData = await userRes.json();
+            const budget = userData.monthlyBudget || 0;
+            if (budget > 0) {
+                const pct = (total / budget) * 100;
+                miniBudget.innerText = `${pct.toFixed(0)}%`;
+                miniBudget.style.color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
+            } else {
+                miniBudget.innerText = '-';
+            }
+        }
+        
+        // Category list
+        const categoryList = document.getElementById('category-list');
+        if (categoryList) {
+            categoryList.innerHTML = '';
+            data.categories.forEach(cat => {
+                const pct = total > 0 ? (cat.amount / total) * 100 : 0;
+                const row = document.createElement('div');
+                row.className = 'category-row';
+                row.innerHTML = `
+                    <div class="category-info">
+                        <span>${escapeHtml(cat.category)}</span>
+                        <span>R$ ${cat.amount.toFixed(0)} (${pct.toFixed(0)}%)</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                categoryList.appendChild(row);
+            });
         }
 
-        // Renderiza as Barras de Progresso por Categoria
-        const categoryList = document.getElementById('category-list');
-        categoryList.innerHTML = '';
-        data.categories.forEach(cat => {
-            const pct = (cat.amount / data.total) * 100;
-            const row = document.createElement('div');
-            row.className = 'category-row';
-            row.innerHTML = `
-                <div class="category-info">
-                    <span>${escapeHtml(cat.category)}</span>
-                    <span>R$ ${cat.amount.toFixed(2)} (${pct.toFixed(0)}%)</span>
-                </div>
-                <div class="progress-bg">
-                    <div class="progress-fill" style="width: ${pct}%"></div>
-                </div>
-            `;
-            categoryList.appendChild(row);
-        });
-
-        // Update Chart
         updateExpensesChart(data.categories);
 
     } catch (err) {
@@ -1139,12 +1172,22 @@ function addChatMessage(text, sender) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Avatar interaction - clique para girar
+// Toggle Chat Lumi
+function toggleChat() {
+    const panel = document.getElementById('lumi-chat-panel');
+    if (panel) {
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Avatar interaction - clique para abrir o chat
 const lumiAvatarWrapper = document.getElementById('lumi-avatar-wrapper');
 const lumiAvatar = document.getElementById('lumi-avatar');
+const lumiStatus = document.getElementById('lumi-status');
 
 if (lumiAvatarWrapper) {
     lumiAvatarWrapper.addEventListener('click', () => {
+        toggleChat();
         if (lumiAvatar) {
             lumiAvatar.style.transform = 'rotate(360deg)';
             setTimeout(() => {
