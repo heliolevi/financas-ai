@@ -46,7 +46,12 @@ const updateProfile = async (req, res) => {
         if (creditCardLimit !== undefined) updateData.creditCardLimit = Math.max(0, Number(creditCardLimit) || 0);
         if (creditCardUsed !== undefined) updateData.creditCardUsed = Math.max(0, Math.min(Number(creditCardUsed) || 0, creditCardLimit || Infinity));
         if (creditCardBill !== undefined) updateData.creditCardBill = Math.max(0, Number(creditCardBill) || 0);
-        if (creditCardDueDate !== undefined) updateData.creditCardDueDate = Math.max(1, Math.min(31, Number(creditCardDueDate) || 0));
+        if (creditCardDueDate !== undefined && creditCardDueDate !== null && creditCardDueDate !== '') {
+            const dueDate = parseInt(creditCardDueDate, 10);
+            if (!isNaN(dueDate) && dueDate >= 1 && dueDate <= 31) {
+                updateData.creditCardDueDate = dueDate;
+            }
+        }
         if (fixedExpenses !== undefined) {
             const validExpenses = (fixedExpenses || [])
                 .filter(e => e && e.name && e.amount > 0 && e.dueDate >= 1 && e.dueDate <= 31)
