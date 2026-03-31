@@ -20,9 +20,27 @@ const updateProfile = async (req, res) => {
             notificationsEnabled, emailNotification, pushNotification, budgetAlertThreshold
         } = req.body;
 
+        const existingUser = await User.findById(req.userId);
+        if (!existingUser) return res.status(404).json({ error: 'Usuário não encontrado' });
+
         const updateData = {};
-        if (grossIncome !== undefined) updateData.grossIncome = Math.max(0, Number(grossIncome) || 0);
-        if (netIncome !== undefined) updateData.netIncome = Math.max(0, Math.min(Number(netIncome) || 0, updateData.grossIncome || Infinity));
+        if (grossIncome !== undefined) {
+            const grossValue = Math.max(0, Number(grossIncome) || 0);
+            updateData.grossIncome = grossValue;
+            
+            if (netIncome !== undefined && Number(netIncome) > grossValue) {
+                return res.status(400).json({ error: 'Renda líquida não pode ser maior que a renda bruta' });
+            }
+        }
+        if (netIncome !== undefined) {
+            const netValue = Math.max(0, Number(netIncome) || 0);
+            const grossValue = updateData.grossIncome !== undefined ? updateData.grossIncome : existingUser.grossIncome;
+            
+            if (grossValue !== undefined && netValue > grossValue) {
+                return res.status(400).json({ error: 'Renda líquida não pode ser maior que a renda bruta' });
+            }
+            updateData.netIncome = netValue;
+        }
         if (bankName !== undefined) updateData.bankName = String(bankName).slice(0, 100);
         if (bankBalance !== undefined) updateData.bankBalance = Number(bankBalance) || 0;
         if (creditCardLimit !== undefined) updateData.creditCardLimit = Math.max(0, Number(creditCardLimit) || 0);

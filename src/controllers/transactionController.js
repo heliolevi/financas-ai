@@ -81,11 +81,17 @@ const getTransactions = async (req, res) => {
     try {
         let query = { user_id: userId };
         
-        // Filtro por mês e ano (estilo fatura)
         if (month && year) {
-            const start = `${year}-${month.padStart(2, '0')}-01`;
-            const lastDay = new Date(year, month, 0).getDate();
-            const end = `${year}-${month.padStart(2, '0')}-${lastDay}`;
+            const monthNum = parseInt(month, 10);
+            const yearNum = parseInt(year, 10);
+            
+            if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 1 || monthNum > 12) {
+                return res.status(400).json({ message: 'Mês ou ano inválido' });
+            }
+            
+            const start = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+            const lastDay = new Date(yearNum, monthNum, 0).getDate();
+            const end = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
             
             query.date = { $gte: start, $lte: end };
         }
@@ -154,9 +160,16 @@ const getDashboardStats = async (req, res) => {
         let matchStage = { user_id: userId };
         
         if (month && year) {
-            const start = `${year}-${String(month).padStart(2, '0')}-01`;
-            const lastDay = new Date(year, month, 0).getDate();
-            const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+            const monthNum = parseInt(month, 10);
+            const yearNum = parseInt(year, 10);
+            
+            if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 1 || monthNum > 12) {
+                return res.status(400).json({ message: 'Mês ou ano inválido' });
+            }
+            
+            const start = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+            const lastDay = new Date(yearNum, monthNum, 0).getDate();
+            const end = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
             matchStage.date = { $gte: start, $lte: end };
         }
 

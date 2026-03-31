@@ -7,7 +7,8 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.post('/create-checkout', authMiddleware, paymentController.createCheckoutSession);
 
 // Rota do Webhook (NÃO deve ter authMiddleware pois quem chama é o Stripe)
-// IMPORTANTE: Esta rota precisa receber o body como stream/buffer no app.js
-router.post('/webhook', express.raw({ type: 'application/json' }), paymentController.webhook);
+// O middleware raw está configurado diretamente no app.js para esta rota
+// router.post('/webhook', ...) - descomentar se quiser usar a rota antiga
+// O webhook correto agora está em /api/payments/webhook via app.js
 
 module.exports = router;

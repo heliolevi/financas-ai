@@ -1,9 +1,100 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/User');
 
+// Armazenamento em memória para idempotência (em produção, usar Redis ou DB)
+const processedEvents = new Map();
+const IDEMPOTENCY_WINDOW = 24 * 60 * 60 * 1000; // 24 horas
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of processedEvents) {
+        if (now - timestamp > IDEMPOTENCY_WINDOW) {
+            processedEvents.delete(key);
+        }
+    }
+}, 60 * 60 * 1000);
+
 /**
- * Cria uma sessão de Checkout do Stripe para assinatura.
+ * Webhook raw (sem verificação de auth) para receber eventos do Stripe
+ * Usa raw body para validar assinatura
  */
+const webhookRaw = async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('Erro no Webhook Signature:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Idempotência: verifica se o evento já foi processado
+    const eventKey = `${event.type}-${event.data.object.id}-${event.request?.id || ''}`;
+    if (processedEvents.has(eventKey)) {
+        console.log(`Evento ${eventKey} já processado, ignorando.`);
+        return res.json({ received: true, skipped: true });
+    }
+
+    try {
+        await processStripeEvent(event);
+        processedEvents.set(eventKey, Date.now());
+        console.log(`Evento ${event.type} processado com sucesso.`);
+    } catch (err) {
+        console.error('Erro ao processar evento do Stripe:', err);
+        return res.status(500).json({ error: 'Erro ao processar evento' });
+    }
+
+    res.json({ received: true });
+};
+
+async function processStripeEvent(event) {
+    switch (event.type) {
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated': {
+            const subscription = event.data.object;
+            await User.findOneAndUpdate(
+                { stripeCustomerId: subscription.customer },
+                { 
+                    subscriptionStatus: subscription.status,
+                    subscriptionId: subscription.id,
+                    subscriptionCurrentPeriodEnd: new Date(subscription.current_period_end * 1000)
+                }
+            );
+            break;
+        }
+        case 'customer.subscription.deleted': {
+            const deletedSub = event.data.object;
+            await User.findOneAndUpdate(
+                { stripeCustomerId: deletedSub.customer },
+                { 
+                    subscriptionStatus: 'inactive',
+                    subscriptionId: null
+                }
+            );
+            break;
+        }
+        case 'invoice.payment_succeeded': {
+            const invoice = event.data.object;
+            await User.findOneAndUpdate(
+                { stripeCustomerId: invoice.customer },
+                { 
+                    subscriptionStatus: 'active',
+                    subscriptionCurrentPeriodEnd: new Date(invoice.period_end * 1000)
+                }
+            );
+            break;
+        }
+        case 'invoice.payment_failed': {
+            const invoice = event.data.object;
+            await User.findOneAndUpdate(
+                { stripeCustomerId: invoice.customer },
+                { subscriptionStatus: 'past_due' }
+            );
+            break;
+        }
+    }
+}
 const createCheckoutSession = async (req, res) => {
     const userId = req.userId;
 
@@ -45,41 +136,4 @@ const createCheckoutSession = async (req, res) => {
     }
 };
 
-/**
- * Webhook para receber eventos do Stripe (Aprovação, Cancelamento, etc.)
- */
-const webhook = async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    try {
-        // No Render, precisamos do raw body para verificar a assinatura
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-        console.error('Erro no Webhook Signature:', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    // Lógica por tipo de evento
-    switch (event.type) {
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-            const subscription = event.data.object;
-            await User.findOneAndUpdate(
-                { stripeCustomerId: subscription.customer },
-                { subscriptionStatus: subscription.status }
-            );
-            break;
-        case 'customer.subscription.deleted':
-            const deletedSub = event.data.object;
-            await User.findOneAndUpdate(
-                { stripeCustomerId: deletedSub.customer },
-                { subscriptionStatus: 'inactive' }
-            );
-            break;
-    }
-
-    res.json({ received: true });
-};
-
-module.exports = { createCheckoutSession, webhook };
+module.exports = { createCheckoutSession, webhook: createCheckoutSession, webhookRaw };

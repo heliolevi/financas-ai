@@ -2,6 +2,7 @@ const Groq = require('groq-sdk');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Message = require('../models/Message');
+const lumiAnalytics = require('../services/lumiAnalytics');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -73,14 +74,24 @@ const recordTransaction = async (userId, data) => {
     try {
         console.log(`[LUMI DEBUG] Tentando gravar para User: ${userId}`, data);
         
-        // Normalização de Data
+        if (!data || typeof data !== 'object') {
+            console.error("[LUMI ERROR] Dados inválidos para transação");
+            return null;
+        }
+
         let baseDateStr = data.date;
         if (!baseDateStr || typeof baseDateStr !== 'string' || baseDateStr.includes('[') || !baseDateStr.includes('-')) {
             baseDateStr = new Date().toISOString().split('T')[0];
         }
 
-        const numInstallments = Number(data.installments) || 1;
-        const totalAmount = Number(data.amount) || 0;
+        const numInstallments = Math.min(Math.max(1, Number(data.installments) || 1), 24);
+        const totalAmount = Math.min(Math.max(0, Number(data.amount) || 0), 1000000);
+        
+        if (totalAmount <= 0) {
+            console.log("[LUMI DEBUG] Ignorando transação de valor zero ou negativo");
+            return null;
+        }
+
         const installmentAmount = totalAmount / numInstallments;
         const baseDate = new Date(baseDateStr + 'T12:00:00');
         const groupId = numInstallments > 1 ? 'LUMI-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5) : null;
@@ -97,9 +108,9 @@ const recordTransaction = async (userId, data) => {
             const payload = {
                 user_id: userId,
                 amount: installmentAmount,
-                category: data.category || 'Outros',
-                description: (data.description || '') + descSuffix,
-                payment_method: data.payment_method || 'Cartão de Crédito',
+                category: String(data.category || 'Outros').slice(0, 50),
+                description: (String(data.description || '').slice(0, 200)) + descSuffix,
+                payment_method: String(data.payment_method || 'Cartão de Crédito').slice(0, 50),
                 date: dateStr,
                 installments: numInstallments,
                 installment_index: i + 1,
@@ -123,22 +134,72 @@ const recordTransaction = async (userId, data) => {
  */
 const deleteTransactionById = async (userId, id) => {
     try {
+        if (!id || typeof id !== 'string' || id.length < 10) {
+            console.error("ID inválido para exclusão:", id);
+            return;
+        }
+        
+        const transaction = await Transaction.findOne({ _id: id, user_id: userId });
+        if (!transaction) {
+            console.error(`Transação ${id} não encontrada ou acesso negado para usuário ${userId}`);
+            return;
+        }
+        
         await Transaction.deleteOne({ _id: id, user_id: userId });
         console.log(`[LUMI SUCCESS] Transação ${id} deletada com sucesso!`);
     } catch (err) {
-        console.error("Erro ao deletar transação:", err);
+        console.error("Erro ao deletar transação:", err.message);
     }
 };
 
-/**
- * Atualiza um gasto identificado pela IA via ID com novos dados.
- */
 const updateTransactionById = async (userId, id, updates) => {
     try {
-        await Transaction.updateOne({ _id: id, user_id: userId }, { $set: updates });
+        if (!id || typeof id !== 'string' || id.length < 10) {
+            console.error("ID inválido para atualização:", id);
+            return;
+        }
+
+        if (!updates || typeof updates !== 'object') {
+            console.error("Updates inválidos:", updates);
+            return;
+        }
+
+        const allowedFields = ['amount', 'category', 'description', 'payment_method', 'date'];
+        const sanitizedUpdates = {};
+        
+        for (const key of allowedFields) {
+            if (updates[key] !== undefined) {
+                if (key === 'amount') {
+                    const val = Number(updates[key]);
+                    if (val > 0 && val <= 1000000) {
+                        sanitizedUpdates[key] = val;
+                    }
+                } else if (key === 'date') {
+                    const dateStr = String(updates[key]);
+                    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        sanitizedUpdates[key] = dateStr;
+                    }
+                } else {
+                    sanitizedUpdates[key] = String(updates[key]).slice(0, 200);
+                }
+            }
+        }
+
+        if (Object.keys(sanitizedUpdates).length === 0) {
+            console.error("Nenhum campo válido para atualizar");
+            return;
+        }
+
+        const transaction = await Transaction.findOne({ _id: id, user_id: userId });
+        if (!transaction) {
+            console.error(`Transação ${id} não encontrada ou acesso negado para usuário ${userId}`);
+            return;
+        }
+
+        await Transaction.updateOne({ _id: id, user_id: userId }, { $set: sanitizedUpdates });
         console.log(`[LUMI SUCCESS] Transação ${id} atualizada com sucesso!`);
     } catch (err) {
-        console.error("Erro ao atualizar transação:", err);
+        console.error("Erro ao atualizar transação:", err.message);
     }
 };
 
@@ -191,6 +252,13 @@ const analyzeFinances = async (req, res) => {
         const transactionsSummary = transactions.map(t => `- ID: ${t.id} | ${t.date} | ${t.description} | R$ ${t.amount} | ${t.category}`).join('\n            ');
 
         const totalFixed = user.fixedExpenses ? user.fixedExpenses.reduce((acc, e) => acc + e.amount, 0) : 0;
+
+        // NOVAS ANÁLISES: Comparativo, Previsão e Sugestões
+        const monthlyComparison = await lumiAnalytics.getMonthlyComparison(userId);
+        const forecast = await lumiAnalytics.getSpendingForecast(userId, user.monthlyBudget || 0);
+        const smartCuts = await lumiAnalytics.getSmartCutSuggestions(userId);
+        const reactiveAlerts = await lumiAnalytics.checkReactiveAlerts(user, totalFixed);
+
         const profileSummary = `
             Renda Bruta: R$ ${user.grossIncome || 0}
             Renda Líquida: R$ ${user.netIncome || 0}
@@ -198,9 +266,27 @@ const analyzeFinances = async (req, res) => {
             Cartão: Limite R$ ${user.creditCardLimit || 0} (Usado: R$ ${user.creditCardUsed || 0}, Fatura: R$ ${user.creditCardBill || 0}, Vencimento: Dia ${user.creditCardDueDate || '?'})
             Despesas Fixas Total: R$ ${totalFixed.toFixed(2)}
             Lista de Fixas: ${user.fixedExpenses && user.fixedExpenses.length > 0 ? user.fixedExpenses.map(e => `${e.name}: R$ ${e.amount} (venc. ${e.dueDate})`).join(', ') : 'Nenhuma cadastrada'}
+            Orçamento Mensal: R$ ${user.monthlyBudget || 0}
         `;
 
         const currentDate = new Date().toLocaleDateString('pt-BR');
+        
+        const alertsContext = reactiveAlerts.length > 0 
+            ? `\n--- ⚠️ ALERTAS REATIVOS ---\n${reactiveAlerts.map(a => `[${a.type.toUpperCase()}] ${a.title}: ${a.message}`).join('\n')}`
+            : '';
+
+        const comparisonContext = monthlyComparison.previous.count > 0
+            ? `\n--- 📊 COMPARATIVO MENSAL ---\nMês Anterior: R$ ${monthlyComparison.previous.total.toFixed(2)}\nMês Atual: R$ ${monthlyComparison.current.total.toFixed(2)}\nVariação: ${monthlyComparison.growth > 0 ? '+' : ''}${monthlyComparison.growth.toFixed(1)}%\nAnálise: ${monthlyComparison.analysis.map(a => a.message).join(' | ')}`
+            : '';
+
+        const forecastContext = forecast.monthlyBudget > 0
+            ? `\n--- 🔮 PREVISÃO DO MÊS ---\nMedia Diária: R$ ${forecast.dailyAverage.toFixed(2)}\nProjecção Total: R$ ${forecast.projectedTotal.toFixed(2)}\nOrçamento: R$ ${forecast.monthlyBudget}\nStatus: ${forecast.status} - ${forecast.message}`
+            : '';
+
+        const cutsContext = smartCuts.length > 0
+            ? `\n--- ✂️ SUGESTÕES DE CORTE ---\n${smartCuts.map(c => `- ${c.category}: R$ ${c.excess.toFixed(2)} acima da média (atual: R$ ${c.currentSpent.toFixed(2)}, média: R$ ${c.monthlyAvg.toFixed(2)})`).join('\n')}`
+            : '';
+
         const dynamicContext = `
             Cliente: ${user.username}
             Data Atual: ${currentDate}
@@ -211,6 +297,10 @@ const analyzeFinances = async (req, res) => {
             Total gasto (Variável): R$ ${total.toFixed(2)}
             Gasto por categoria: ${JSON.stringify(cats)}
             Uso de Cartão de Crédito: ${creditPct.toFixed(0)}% ${creditPct > 60 ? '(ALERTA GATILHO: Chegando na zona vermelha!)' : '(Sob controle)'}
+            ${alertsContext}
+            ${comparisonContext}
+            ${forecastContext}
+            ${cutsContext}
             
             --- ÚLTIMAS TRANSAÇÕES PARA EDIÇÃO (God Mode) ---
             ${transactionsSummary || 'Nenhuma transação encontrada.'}
@@ -219,28 +309,22 @@ const analyzeFinances = async (req, res) => {
         const messages = [
             {
                 role: "system",
-                content: `Você é a **Lumi**, uma Wealth Manager Analítica e Concierge Financeira pessoal de alto padrão. Seu objetivo é coletar dados, realizar diagnósticos matemáticos e guiar a saúde financeira do cliente com autoridade e precisão.
+                content: `Você é a **Lumi**, uma Wealth Manager pessoal Premium. Analise dados, diagnostique números e oriente o cliente com precisão.
 
-### DIRETRIZES DE COMPORTAMENTO
-1. **Ativa e Analítica**: Não seja uma mera secretária. Analise dados, questione o usuário e dê diagnósticos claros usando números e porcentagens.
-2. **Onboarding Financeiro**: Se o perfil do cliente estiver incompleto (rendas zeradas ou sem gastos fixos), conduza a entrevista na ordem:
-   - Passo 1: Renda Bruta e Líquida. (Validação: Líquida NUNCA > Bruta).
-   - Passo 2: Nome do Banco e Saldo Atual.
-   - Passo 3: Cartão de Crédito (Limite Total, Usado, Fatura e Vencimento).
-   - Passo 4: Listagem de Despesas Fixas (Nome, Valor, Vencimento).
-3. **Diagnóstico Matemático (OBRIGATÓRIO)**:
-   - **Comprometimento de Renda**: (Total Despesas Fixas / Renda Líquida) * 100. [Saudável: <50% | Alerta: 50-75% | Crítico: >75%].
-   - **Uso do Cartão**: (Limite Utilizado / Limite Total) * 100. [Ideal: <30% | Moderado: 30-70% | Perigoso: >70%].
-4. **Respostas Diretas**: Nunca use linguagem vaga. Se houver risco, aponte-o explicitamente ("Sua situação é Crítica pois 80% da sua renda está comprometida").
+## REGRAS PRINCIPAIS
+- Question gastos supérfluos com elegância
+- Onboarding em 4 passos: Renda → Banco → Cartão → Fixas
+- Diagnóstico obrigatório: Comprometimento (<50% saudável, 50-75% alerta, >75% crítico)
+- Use dados reais do contexto para fundamentar suas recomendações
+- Seja direta: não use linguagem vaga
 
-### FERRAMENTAS E TAGS (SILENCIOSAS - NUNCA MOSTRE O JSON)
-1. **[[UPDATE_PROFILE:{...}]]**: Use para salvar dados do perfil. Campos: grossIncome, netIncome, bankName, bankBalance, creditCardLimit, creditCardUsed, creditCardBill, creditCardDueDate, fixedExpenses (array de {name, amount, dueDate}).
-2. **[[SAVE:{...}]]**: Para novos gastos VARIÁVEIS.
-3. **[[UPDATE:ID, {...}]]** / **[[DELETE:ID]]**: Edição de gastos variáveis.
-4. **Google Calendar (Links Mágicos)**: Para cada despesa fixa cadastrada ou detectada, gere um link no chat assim: 👉 [Adicionar ao Google Agenda - Nome da Conta](URL).
-   - Use o ano e mês ATUAIS para gerar os links. Exemplo para dia 15 do mês atual: https://www.google.com/calendar/render?action=TEMPLATE&text=Pagamento+-+NOME_DA_CONTA&details=Lembrete+de+Pagamento+da+Lumi.+Lembrete+configurado+para+2+dias+antes.&dates=YYYYMM15/YYYYMM15 (substitua YYYY pelo ano atual e MM pelo mês atual).
+## FERRAMENTAS (silenciosas - nunca mostre o JSON)
+1. [[UPDATE_PROFILE:{...}]] - salvar dados do perfil
+2. [[SAVE:{...}]] - salvar gastos variáveis
+3. [[UPDATE:ID,{...}]] / [[DELETE:ID]] - editar/deletar transações
+4. Google Calendar: gere links para despesas fixes
 
-### CONTEXTO DO CLIENTE NESTE MOMENTO:
+## CONTEXTO DO CLIENTE:
 ${dynamicContext}`
             },
             ...history.map(msg => ({ role: msg.role, content: msg.content })),
@@ -308,10 +392,46 @@ ${dynamicContext}`
         const profileMatches = aiResponse.matchAll(/\[\[UPDATE_PROFILE:(.*?)\]\]/g);
         for (const match of profileMatches) {
             try {
-                const profileData = JSON.parse(match[1]);
-                await User.findByIdAndUpdate(userId, { $set: profileData });
-                console.log(`[LUMI SUCCESS] Perfil do usuário ${userId} atualizado!`);
-                dataChanged = true;
+                const profileDataRaw = JSON.parse(match[1]);
+                
+                if (!profileDataRaw || typeof profileDataRaw !== 'object') {
+                    console.error("[LUMI ERROR] Dados de perfil inválidos");
+                    continue;
+                }
+
+                const allowedProfileFields = ['grossIncome', 'netIncome', 'bankName', 'bankBalance', 'creditCardLimit', 'creditCardUsed', 'creditCardBill', 'creditCardDueDate', 'fixedExpenses', 'monthlyBudget', 'savingsGoal', 'savingsCurrent'];
+                const sanitizedProfileData = {};
+                
+                for (const key of allowedProfileFields) {
+                    if (profileDataRaw[key] !== undefined) {
+                        if (['grossIncome', 'netIncome', 'bankBalance', 'creditCardLimit', 'creditCardUsed', 'creditCardBill', 'monthlyBudget', 'savingsGoal', 'savingsCurrent'].includes(key)) {
+                            const numVal = Number(profileDataRaw[key]);
+                            if (key === 'netIncome' && sanitizedProfileData.grossIncome !== undefined && numVal > sanitizedProfileData.grossIncome) {
+                                console.warn("[LUMI WARN] netIncome maior que grossIncome, ajustando para igual");
+                                sanitizedProfileData[key] = sanitizedProfileData.grossIncome;
+                            } else if (numVal >= 0 && numVal <= 10000000) {
+                                sanitizedProfileData[key] = numVal;
+                            }
+                        } else if (key === 'creditCardDueDate') {
+                            const dueDate = Math.max(1, Math.min(31, Number(profileDataRaw[key]) || 0));
+                            if (dueDate > 0) sanitizedProfileData[key] = dueDate;
+                        } else if (key === 'bankName') {
+                            sanitizedProfileData[key] = String(profileDataRaw[key]).slice(0, 100);
+                        } else if (key === 'fixedExpenses' && Array.isArray(profileDataRaw[key])) {
+                            sanitizedProfileData[key] = profileDataRaw[key].filter(e => e && e.name && e.amount > 0).map(e => ({
+                                name: String(e.name).slice(0, 100),
+                                amount: Math.max(0, Number(e.amount) || 0),
+                                dueDate: Math.max(1, Math.min(31, Number(e.dueDate) || 1))
+                            }));
+                        }
+                    }
+                }
+
+                if (Object.keys(sanitizedProfileData).length > 0) {
+                    await User.findByIdAndUpdate(userId, { $set: sanitizedProfileData });
+                    console.log(`[LUMI SUCCESS] Perfil do usuário ${userId} atualizado!`);
+                    dataChanged = true;
+                }
             } catch (e) {
                 console.error("Erro ao atualizar perfil via IA:", e.message);
             }
