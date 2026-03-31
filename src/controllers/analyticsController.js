@@ -14,9 +14,10 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
-});
+let groq = null;
+if (process.env.GROQ_API_KEY) {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+}
 
 /**
  * Prevê gastos do mês atual baseando-se na média histórica.
@@ -226,9 +227,14 @@ const detectSubscriptions = async (req, res) => {
  * @param {Object} res - { insight: string }
  */
 const getAIInsight = async (req, res) => {
+    if (!groq) {
+        return res.status(503).json({ error: 'Serviço de IA indisponível.' });
+    }
+
     try {
         const userId = req.userId;
         const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
         
         const transactions = await Transaction.find({ user_id: userId })
             .sort({ date: -1 })

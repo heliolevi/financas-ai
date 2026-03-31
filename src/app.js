@@ -19,6 +19,8 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('./config/database'); // Inicializa a conexão com o MongoDB
 
@@ -34,6 +36,34 @@ const paymentController = require('./controllers/paymentController');
 
 // Configuração do servidor Express
 const app = express();
+
+// Security headers com helmet (desabilita alguns para permitir UI)
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting geral (100 requisições por 15 minutos)
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
+});
+app.use(generalLimiter);
+
+// Rate limiting específico para login (previne brute force)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { message: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+});
+
+// Rate limiting específico para AI (custo computacional alto)
+const aiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    message: { message: 'Limite de uso da IA excedido. Aguarde um momento.' }
+});
 
 app.use(cors());
 

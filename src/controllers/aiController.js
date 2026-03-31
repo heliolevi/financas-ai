@@ -18,10 +18,12 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Inicializa cliente Groq com chave da API do .env
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
-});
+let groq = null;
+if (process.env.GROQ_API_KEY) {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+} else {
+    console.warn('⚠️ AVISO: GROQ_API_KEY não configurada. Recursos de IA estarão indisponíveis.');
+}
 
 // ==========================================
 // FUNÇÕES AUXILIARES (HELPERS)
@@ -37,7 +39,9 @@ const groq = new Groq({
  */
 const saveMessage = async (userId, role, content) => {
     try {
-        await Message.create({ user_id: userId, role, content });
+        await Message.create({ user_id: userId, role, content: content?.substring(0, 10000) });
+        // Limpa mensagens antigas se exceder o limite
+        await Message.cleanOldMessages(userId);
     } catch (err) {
         console.error("Erro ao salvar mensagem:", err);
     }
@@ -51,11 +55,11 @@ const saveMessage = async (userId, role, content) => {
  * @param {number} limit - Quantidade de mensagens (padrão: 10)
  * @returns {Array} Array de { role, content }
  */
-const getHistory = async (userId, limit = 10) => {
+const getHistory = async (userId, limit = 20) => {
     try {
         const history = await Message.find({ user_id: userId })
             .sort({ timestamp: -1 })
-            .limit(limit);
+            .limit(Math.min(limit, 50));
         return history.reverse().map(m => ({ role: m.role, content: m.content }));
     } catch (err) {
         console.error("Erro ao buscar histórico:", err);
@@ -282,6 +286,14 @@ const deleteAllTransactions = async (userId) => {
 const analyzeFinances = async (req, res) => {
     const { message } = req.body;
     const userId = req.userId;
+
+    if (!groq) {
+        return res.status(503).json({ message: 'Serviço de IA indisponível no momento. Configure a chave da API.' });
+    }
+
+    if (!message || typeof message !== 'string' || message.length > 5000) {
+        return res.status(400).json({ message: 'Mensagem inválida ou muito longa (máx 5000 caracteres).' });
+    }
 
     try {
         const user = await User.findById(userId);
@@ -617,121 +629,6 @@ Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight inteligente, 
  * @param {Object} req - body: { image: URL/base64 }
  * @param {Object} res - { success, message, data }
  */
-const analyzeImage = async (req, res) => {
-    const { image } = req.body;
-    const userId = req.userId;
-
-    if (!image) {
-        return res.status(400).json({ message: 'Imagem não fornecida' });
-    }
-
-    try {
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
-
-        const isCreator = user.username === 'helio.vieira' || user.username === 'admin';
-        if (user.subscriptionStatus !== 'active' && !isCreator) {
-            return res.status(403).json({ message: 'Recurso exclusivo para assinantes Lumi Pro' });
-        }
-
-        const completion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: `Você é a **Lumi**, assistente financeira. Analise a imagem de nota fiscal/recibo e extraia os dados em formato JSON válido. 
-Retorne APENAS o JSON sem texto adicional.
-Campos: description (estabelecimento), amount (valor numérico), category (categoria), date (YYYY-MM-DD ou hoje).`
-                },
-                {
-                    role: "user",
-                    content: [
-                        { type: "image_url", image_url: { url: image } }
-                    ]
-                }
-            ],
-            model: "llama-3.2-90b-vision-preview",
-        });
-
-        const response = completion.choices[0].message.content;
-        
-        let data;
-        try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                data = JSON.parse(jsonMatch[0]);
-            } else {
-                return res.status(400).json({ message: 'Não consegui extrair dados da imagem' });
-            }
-        } catch (e) {
-            console.error('Parse error:', e, response);
-            return res.status(400).json({ message: 'Formato de resposta inválido' });
-        }
-
-        if (!data || !data.amount || data.amount <= 0) {
-            return res.status(400).json({ message: 'Não consegui identificar o valor na nota' });
-        }
-
-        data.date = data.date || new Date().toISOString().split('T')[0];
-        data.payment_method = 'Cartão de Crédito';
-        
-        await recordTransaction(userId, data);
-        
-        res.json({ 
-            success: true, 
-            message: `Transação registrada: ${data.description} - R$ ${data.amount}`,
-            data 
-        });
-
-    } catch (err) {
-        console.error('Erro ao analisar imagem:', err);
-        res.status(500).json({ message: 'Erro ao processar imagem' });
-    }
-};
-
-module.exports = { analyzeFinances, getProactiveInsight, analyzeImage };
-    const userId = req.userId;
-    try {
-        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);
-        const user = await User.findById(userId);
-
-        if (!user.netIncome || user.netIncome === 0) {
-            return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi, sua Wealth Manager pessoal. Para começarmos sua jornada de lucros e controle, preciso que façamos seu onboarding financeiro. Qual é a sua renda bruta e líquida mensal?` });
-        }
-
-        if (transactions.length === 0) {
-            return res.json({ insight: `Olá ${user.username}! Já preparei seu perfil. Quando você começar a registrar seus gastos variáveis, poderei te dar um diagnóstico completo em tempo real. Que tal anotar sua primeira compra hoje? 😊` });
-        }
-
-        const summary = transactions.map(t => `${t.date}: ${t.description} (R$ ${t.amount}) [${t.category}]`).join('\n');
-        const currentDate = new Date().toLocaleDateString('pt-BR');
-
-        const completion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: `Você é a **Lumi**, uma Wealth Manager e Concierge Financeira pessoal de alto padrão.
-A data de hoje é: ${currentDate}.
-Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight inteligente, refinado e proativo (máx 2 frases) baseado nos gastos recentes e na data.
-- **Concierge Premium**: Use linguagem requintada, elegante, chamando o cliente pelo nome.
-- **Educadora afiada / Proatividade**: Se for fim de mês, alerte sobre segurar gastos. Se o gasto em utilidades ou iFood for alto, comande de forma sutil. Se os gastos estiverem baixos, comemore o sucesso.
-- **NUNCA** mencione dados técnicos, nem JSON ou o formato dos dados.`
-                },
-                {
-                    role: "user",
-                    content: `Usuário: ${user.username}\n\nHistórico Recente:\n${summary}`
-                }
-            ],
-            model: "llama-3-8b-8192", // Modelo mais rápido para insights iniciais
-        });
-
-        const insight = completion.choices[0].message.content;
-        res.json({ insight });
-    } catch (err) {
-        console.error("Erro ao gerar insight proativo:", err);
-        res.status(500).json({ message: "Erro ao gerar insight" });
-    }
-};
-
 const analyzeImage = async (req, res) => {
     const { image } = req.body;
     const userId = req.userId;

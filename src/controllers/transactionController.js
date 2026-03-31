@@ -121,8 +121,11 @@ const getTransactions = async (req, res) => {
             query.date = { $gte: start, $lte: end };
         }
 
+        const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+        
         const transactions = await Transaction.find(query)
-            .sort({ date: -1, timestamp: -1 });
+            .sort({ date: -1, timestamp: -1 })
+            .limit(limit);
 
         // Mapeia campos para response (remove campos internos)
         const rows = transactions.map(t => ({

@@ -7,8 +7,14 @@
  * =============================================================================
  */
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/User');
+
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+} else {
+    console.warn('⚠️ AVISO: STRIPE_SECRET_KEY não configurada. Pagamentos indisponíveis.');
+}
 
 // Armazenamento em memória para idempotência (em produção, usar Redis ou DB)
 const processedEvents = new Map();
@@ -34,6 +40,10 @@ setInterval(() => {
  * @param {Object} res - Confirmação de recebimento
  */
 const webhookRaw = async (req, res) => {
+    if (!stripe) {
+        return res.status(503).json({ error: 'Serviço de pagamento indisponível.' });
+    }
+
     const sig = req.headers['stripe-signature'];
     let event;
 
@@ -130,6 +140,10 @@ async function processStripeEvent(event) {
  */
 const createCheckoutSession = async (req, res) => {
     const userId = req.userId;
+
+    if (!stripe) {
+        return res.status(503).json({ message: 'Serviço de pagamento indisponível. Configure STRIPE_SECRET_KEY.' });
+    }
 
     try {
         const user = await User.findById(userId);

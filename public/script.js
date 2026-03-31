@@ -1,8 +1,40 @@
+/**
+ * =============================================================================
+ * FINANÇAS AI - LUMI GOLD (FRONTEND)
+ * =============================================================================
+ * Script principal do frontend - Gerencia toda a interface do usuário.
+ * Inclui: autenticação, dashboard, transações, chat com IA, gráficos,
+ * importação de extratos e exportação de relatórios.
+ * 
+ * ESTRUTURA DO CÓDIGO:
+ * 1. Constantes e Configuração (API_URL, TOKEN, username)
+ * 2. Seleção de Elementos DOM
+ * 3. Inicialização (DOMContentLoaded)
+ * 4. Autenticação (login, register, logout)
+ * 5. Navegação (tabs, sidebar, bottom nav)
+ * 6. Dashboard (loadDashboardData, loadDashboardStats)
+ * 7. Transações (form, list, delete, import)
+ * 8. IA/Lumi (chat, send message)
+ * 9. Gráficos (Chart.js)
+ * 10. Utilitários
+ * =============================================================================
+ */
+
 const API_URL = '/api';
 let TOKEN = localStorage.getItem('token');
 let USERNAME = localStorage.getItem('username');
 
-// Função para escapar HTML e prevenir XSS
+// ==========================================
+// SEGURANÇA: PREVENÇÃO DE XSS
+// ==========================================
+
+/**
+ * Escapa caracteres HTML para prevenir XSS.
+ * Usado em qualquer texto que venha do usuário.
+ * 
+ * @param {string} text - Texto a ser escapado
+ * @returns {string} Texto seguro para exibir
+ */
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -10,12 +42,21 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Função segura para renderizar texto do usuário
+/**
+ * Renderiza HTML seguro em um elemento.
+ * 
+ * @param {HTMLElement} element - Elemento destino
+ * @param {string} html - HTML a ser renderizado
+ */
 function safeInnerHTML(element, html) {
     element.innerHTML = html;
 }
 
-// --- ELEMENTOS DA INTERFACE (DOM) ---
+// ==========================================
+// SELEÇÃO DE ELEMENTOS DOM
+// ==========================================
+
+// Seção de autenticação
 const authSection = document.getElementById('auth-section');
 const dashboardSection = document.getElementById('dashboard-section');
 const authForm = document.getElementById('auth-form');
@@ -24,28 +65,35 @@ const loginTab = document.getElementById('login-tab');
 const registerTab = document.getElementById('register-tab');
 const userDisplay = document.getElementById('user-display');
 const logoutBtn = document.getElementById('logout-btn');
+
+// Elementos potencialmente ausentes na UI simplificada
 const upgradeBtn = document.getElementById('upgrade-btn');
 const proFeaturesBar = document.getElementById('pro-features-bar');
 const exportPdfBtn = document.getElementById('export-pdf-btn');
 const exportExcelBtn = document.getElementById('export-excel-btn');
 
-// Handle potentially missing elements
+// Log de elementos faltantes (debug)
 if (!upgradeBtn) console.log('upgradeBtn não existe (simplified UI)');
 if (!proFeaturesBar) console.log('proFeaturesBar não existe (simplified UI)');
 if (!exportPdfBtn) console.log('exportPdfBtn não existe');
 if (!exportExcelBtn) console.log('exportExcelBtn não existe');
+
+// Formulário e lista de transações
 const transactionForm = document.getElementById('transaction-form');
 const transactionList = document.getElementById('transaction-list');
+
+// Chat com Lumi
 const aiInput = document.getElementById('ai-input');
 const sendBtn = document.getElementById('send-btn');
 const chatMessages = document.getElementById('chat-messages');
+
+// Elementos de formulário removidos na UI simplificada
 const installmentGroup = document.getElementById('t-installments-group');
 const tPayment = document.getElementById('t-payment');
-
-// Handle removed HTML elements gracefully
 if (!installmentGroup) console.log('installmentGroup não existe (simplified UI)');
 if (!tPayment) console.log('tPayment não existe (simplified UI)');
 
+// Abas/Tabs principais
 const mainDashboard = document.getElementById('main-dashboard');
 const mainProfile = document.getElementById('main-profile');
 const mainGoals = document.getElementById('main-goals');

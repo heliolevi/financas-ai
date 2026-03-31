@@ -23,19 +23,24 @@ const ExcelJS = require('exceljs');
 exports.exportPDF = async (req, res) => {
     try {
         const userId = req.userId;
-        const { month, year } = req.query;
+        const { month, year, limit = 500 } = req.query;
         let query = { user_id: userId };
         
         if (month && year) {
             const monthNum = parseInt(month, 10);
             const yearNum = parseInt(year, 10);
+            if (monthNum < 1 || monthNum > 12) {
+                return res.status(400).json({ message: 'Mês inválido' });
+            }
             const start = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
             const lastDay = new Date(yearNum, monthNum, 0).getDate();
             const end = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
             query.date = { $gte: start, $lte: end };
         }
 
-        const transactions = await Transaction.find(query).sort({ date: -1 });
+        const transactions = await Transaction.find(query)
+            .sort({ date: -1 })
+            .limit(Math.min(parseInt(limit) || 500, 1000));
 
         const doc = new jsPDF();
         
@@ -91,19 +96,24 @@ exports.exportPDF = async (req, res) => {
 exports.exportExcel = async (req, res) => {
     try {
         const userId = req.userId;
-        const { month, year } = req.query;
+        const { month, year, limit = 500 } = req.query;
         let query = { user_id: userId };
         
         if (month && year) {
             const monthNum = parseInt(month, 10);
             const yearNum = parseInt(year, 10);
+            if (monthNum < 1 || monthNum > 12) {
+                return res.status(400).json({ message: 'Mês inválido' });
+            }
             const start = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
             const lastDay = new Date(yearNum, monthNum, 0).getDate();
             const end = `${yearNum}-${String(monthNum).padStart(2, '0')}-${lastDay}`;
             query.date = { $gte: start, $lte: end };
         }
 
-        const transactions = await Transaction.find(query).sort({ date: -1 });
+        const transactions = await Transaction.find(query)
+            .sort({ date: -1 })
+            .limit(Math.min(parseInt(limit) || 500, 1000));
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Transações');
