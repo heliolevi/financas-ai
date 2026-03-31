@@ -376,8 +376,11 @@ function showDashboard() {
 
         updateSubscriptionUI(); 
         updateMonthDisplay(); 
-        fetchProactiveInsight(USERNAME);
         loadDashboardData();
+        loadDashboardStats();
+        loadDailySummary();
+        loadTransactions();
+        fetchProactiveInsight(USERNAME);
         console.log('Funções de carga disparadas');
     } catch (e) {
         console.error('CRASH no showDashboard:', e);
@@ -447,8 +450,6 @@ if (mobileMenuBtn) {
 
 // Logout handled by doLogout() below
 
-/* // Old navigation code commented out
-
 async function loadProfile() {
     try {
         const res = await fetch(API_URL + '/profile', {
@@ -476,17 +477,27 @@ async function loadProfile() {
 
 function renderFixedExpenses(expenses) {
     const container = document.getElementById('fixed-expenses-list');
+    if (!container) return;
     container.innerHTML = '';
     expenses.forEach((exp, index) => {
         const div = document.createElement('div');
         div.className = 'fixed-expense-item';
         div.innerHTML = `
-            <span>${exp.name}: R$ ${exp.amount.toFixed(2)} (Dia ${exp.dueDate})</span>
+            <span>${escapeHtml(exp.name)}: R$ ${exp.amount.toFixed(2)} (Dia ${exp.dueDate})</span>
             <button type="button" onclick="removeFixedExpense(${index})" class="danger-btn">×</button>
         `;
         container.appendChild(div);
     });
 }
+
+function removeFixedExpense(index) {
+    const container = document.getElementById('fixed-expenses-list');
+    const items = container.querySelectorAll('.fixed-expense-item');
+    if (items[index]) {
+        items[index].remove();
+    }
+}
+window.removeFixedExpense = removeFixedExpense;
 
 document.getElementById('add-fixed-expense').addEventListener('click', () => {
     const name = prompt('Nome da despesa (ex: Aluguel, Internet):');
@@ -847,12 +858,14 @@ transactionForm.addEventListener('submit', async (e) => {
     const tAmount = document.getElementById('t-amount');
     const tCategory = document.getElementById('t-category');
     const tDescription = document.getElementById('t-description');
+    const tPayment = document.getElementById('t-payment');
+    const tDate = document.getElementById('t-date');
     
     const payload = {
         amount: parseFloat(tAmount.value),
-        date: new Date().toISOString().split('T')[0],
+        date: tDate ? tDate.value : new Date().toISOString().split('T')[0],
         category: tCategory ? tCategory.value : 'Outros',
-        payment_method: 'Cartão de Crédito',
+        payment_method: tPayment ? tPayment.value : 'Cartão de Crédito',
         installments: 1,
         description: tDescription ? tDescription.value : ''
     };
@@ -1343,3 +1356,19 @@ async function requestNotificationPermission() {
         console.error('Notification permission error:', err);
     }
 }
+
+// Toggle Section (collapsible)
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.toggle('collapsed');
+        const header = section.previousElementSibling;
+        if (header && header.classList.contains('section-header')) {
+            const icon = header.querySelector('.toggle-icon');
+            if (icon) {
+                icon.classList.toggle('rotated');
+            }
+        }
+    }
+}
+window.toggleSection = toggleSection;

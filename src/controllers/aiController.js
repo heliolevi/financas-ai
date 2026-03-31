@@ -584,8 +584,20 @@ const getProactiveInsight = async (req, res) => {
         const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);
         const user = await User.findById(userId);
 
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Se não tem GROQ_API_KEY, retorna mensagem simples
+        if (!groq) {
+            if (!user.netIncome || user.netIncome === 0) {
+                return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi. Para começarmos, qual é a sua renda mensal?` });
+            }
+            return res.json({ insight: `Olá ${user.username}! Preparei seu painel. Quando você registrar seus gastos, vou analisar e te dar insights.` });
+        }
+
         if (!user.netIncome || user.netIncome === 0) {
-            return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi, sua Wealth Manager pessoal. Para começarmos sua jornada de lucros e controle, preciso que façamos seu onboarding financeiro. Qual é a sua renda bruta e líquida mensal?` });
+            return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi, sua Wealth Manager pessoal. Para começarmos nossa jornada de lucros e controle, preciso que façamos seu onboarding financeiro. Qual é a sua renda bruta e líquida mensal?` });
         }
 
         if (transactions.length === 0) {
