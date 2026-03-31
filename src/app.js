@@ -87,6 +87,11 @@ app.use('/api/reports', reportRoutes);    // Exportação de relatórios
 app.use('/api/profile', profileRoutes);   // Rotas de perfil e dashboard
 app.use('/api/analytics', analyticsRoutes); // Rotas de analytics (predição, assinaturas)
 
+// Fallback para arquivos estáticos específicos
+app.get('/upgrade.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/upgrade.html'));
+});
+
 // Fallback: Qualquer rota não encontrada na API serve o arquivo index.html (Single Page Application)
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));

@@ -806,9 +806,15 @@ exportExcelBtn.addEventListener('click', () => downloadReport('excel'));
 /**
  * Redireciona para a Landing Page de Upgrade (Efeito WOW).
  */
-upgradeBtn.addEventListener('click', () => {
-    window.location.href = 'upgrade.html';
-});
+if (upgradeBtn) {
+    upgradeBtn.addEventListener('click', () => {
+        console.log('Botão Pro clicado, redirecionando para upgrade.html');
+        window.location.href = 'upgrade.html';
+    });
+    console.log('Listener do upgradeBtn adicionado');
+} else {
+    console.error('upgradeBtn não encontrado no DOM');
+}
 
 // Verifica se voltou de um pagamento bem-sucedido
 if (window.location.search.includes('payment=success')) {
