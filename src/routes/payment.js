@@ -2,8 +2,6 @@
  * =============================================================================
  * ROTAS DE PAGAMENTOS (STRIPE)
  * =============================================================================
- * Endpoints: /api/payments/*
- * =============================================================================
  */
 
 const express = require('express');
@@ -11,18 +9,18 @@ const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// POST /api/payments/create-checkout → Criar sessão de checkout (protegido)
-// Removido rate limiter temporariamente para testar
+// POST /api/payments/create-checkout
 router.post('/create-checkout', authMiddleware, async (req, res) => {
+    console.log('🔄 Rota /create-checkout chamada');
+    
     try {
-        await paymentController.createCheckoutSession(req, res);
+        // Chama o controller diretamente
+        const result = await paymentController.createCheckoutSession(req, res);
+        return result;
     } catch (err) {
-        console.error('Erro no checkout:', err);
-        res.status(500).json({ message: 'Erro ao iniciar pagamento: ' + err.message });
+        console.error('❌ Erro na rota:', err);
+        return res.status(500).json({ message: 'Erro interno: ' + err.message });
     }
 });
-
-// Webhook configurado diretamente no app.js (rota /api/payments/webhook)
-// Não precisa de authMiddleware pois quem chama é o Stripe
 
 module.exports = router;

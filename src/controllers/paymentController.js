@@ -2,46 +2,40 @@
  * =============================================================================
  * CONTROLADOR DE PAGAMENTOS (STRIPE)
  * =============================================================================
- * Responsável por: Checkout session, Webhook de eventos do Stripe,
- * e atualização do status de assinatura do usuário.
- * =============================================================================
  */
 
 const User = require('../models/User');
 
 let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-} else {
-    console.warn('⚠️ AVISO: STRIPE_SECRET_KEY não configurada. Pagamentos indisponíveis.');
+try {
+    if (process.env.STRIPE_SECRET_KEY) {
+        stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        console.log('✅ Stripe inicializado com sucesso');
+    } else {
+        console.warn('⚠️ STRIPE_SECRET_KEY não configurada');
+    }
+} catch (err) {
+    console.error('❌ Erro ao inicializar Stripe:', err.message);
 }
 
-// Armazenamento em memória para idempotência (em produção, usar Redis ou DB)
+// Armazenamento em memória para idempotência
 const processedEvents = new Map();
-const IDEMPOTENCY_WINDOW = 24 * 60 * 60 * 1000; // 24 horas
 
-// Limpa eventos antigos a cada hora
 setInterval(() => {
     const now = Date.now();
     for (const [key, timestamp] of processedEvents) {
-        if (now - timestamp > IDEMPOTENCY_WINDOW) {
+        if (now - timestamp > 24 * 60 * 60 * 1000) {
             processedEvents.delete(key);
         }
     }
 }, 60 * 60 * 1000);
 
 /**
- * Webhook raw (sem verificação de auth) para receber eventos do Stripe.
- * IMPORTANTE: Rota configurada no app.js ANTES do express.json()
- * Usa raw body para validar assinatura do Stripe.
- * Implementa idempotência para evitar processamento duplicado.
- * 
- * @param {Object} req - Body raw com evento do Stripe
- * @param {Object} res - Confirmação de recebimento
+ * Webhook raw para receber eventos do Stripe
  */
 const webhookRaw = async (req, res) => {
     if (!stripe) {
-        return res.status(503).json({ error: 'Serviço de pagamento indisponível.' });
+        return res.status(503).json({ error: 'Stripe não configurado' });
     }
 
     const sig = req.headers['stripe-signature'];
@@ -50,39 +44,26 @@ const webhookRaw = async (req, res) => {
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-        console.error('Erro no Webhook Signature:', err.message);
+        console.error('Erro Webhook:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Idempotência: verifica se o evento já foi processado
     const eventKey = `${event.type}-${event.data.object.id}-${event.request?.id || ''}`;
     if (processedEvents.has(eventKey)) {
-        console.log(`Evento ${eventKey} já processado, ignorando.`);
         return res.json({ received: true, skipped: true });
     }
 
     try {
         await processStripeEvent(event);
         processedEvents.set(eventKey, Date.now());
-        console.log(`Evento ${event.type} processado com sucesso.`);
     } catch (err) {
-        console.error('Erro ao processar evento do Stripe:', err);
+        console.error('Erro ao processar evento:', err);
         return res.status(500).json({ error: 'Erro ao processar evento' });
     }
 
     res.json({ received: true });
 };
 
-/**
- * Processa eventos do Stripe e atualiza o status da assinatura.
- * Eventos tratados:
- * - customer.subscription.created/updated → Status atualizado
- * - customer.subscription.deleted → Assinatura cancelada
- * - invoice.payment_succeeded → Pagamento confirmado
- * - invoice.payment_failed → Pagamento falhou
- * 
- * @param {Object} event - Evento do Stripe
- */
 async function processStripeEvent(event) {
     switch (event.type) {
         case 'customer.subscription.created':
@@ -102,10 +83,7 @@ async function processStripeEvent(event) {
             const deletedSub = event.data.object;
             await User.findOneAndUpdate(
                 { stripeCustomerId: deletedSub.customer },
-                { 
-                    subscriptionStatus: 'inactive',
-                    subscriptionId: null
-                }
+                { subscriptionStatus: 'inactive', subscriptionId: null }
             );
             break;
         }
@@ -132,26 +110,34 @@ async function processStripeEvent(event) {
 }
 
 /**
- * Cria sessão de checkout do Stripe para assinatura Lumi Pro.
- * Cria customer no Stripe se ainda não existir.
- * 
- * @param {Object} req - userId do middleware
- * @param {Object} res - { url: string } (URL do checkout Stripe)
+ * Cria sessão de checkout - VERSÃO SIMPLES E DIRETA
  */
 const createCheckoutSession = async (req, res) => {
-    const userId = req.userId;
-
+    console.log('📦 createCheckoutSession chamado');
+    console.log('   userId:', req.userId);
+    console.log('   STRIPE_PRICE_ID:', process.env.STRIPE_PRICE_ID);
+    
     if (!stripe) {
-        return res.status(503).json({ message: 'Serviço de pagamento indisponível. Configure STRIPE_SECRET_KEY.' });
+        console.error('❌ Stripe não está inicializado');
+        return res.status(503).json({ message: 'Stripe não configurado no servidor' });
     }
 
     try {
+        const userId = req.userId;
         const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+        
+        if (!user) {
+            console.error('❌ Usuário não encontrado:', userId);
+            return res.status(404).json({ message: 'Usuário não encontrado' });
+        }
 
-        // Cria ou recupera o cliente no Stripe
+        console.log('   usuário:', user.username);
+
+        // Cria cliente no Stripe se não existir
         let customerId = user.stripeCustomerId;
+        
         if (!customerId) {
+            console.log('   criando customer no Stripe...');
             const customer = await stripe.customers.create({
                 name: user.username,
                 metadata: { userId: user._id.toString() }
@@ -159,28 +145,33 @@ const createCheckoutSession = async (req, res) => {
             customerId = customer.id;
             user.stripeCustomerId = customerId;
             await user.save();
+            console.log('   customer criado:', customerId);
         }
 
-        // Cria a sessão de checkout
+        // Cria sessão de checkout
+        console.log('   criando sessão de checkout...');
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        
         const session = await stripe.checkout.sessions.create({
             customer: customerId,
             payment_method_types: ['card'],
-            line_items: [
-                {
-                    price: process.env.STRIPE_PRICE_ID, // ID do Preço de R$ 20 no Stripe Dashboard
-                    quantity: 1,
-                },
-            ],
+            line_items: [{
+                price: process.env.STRIPE_PRICE_ID,
+                quantity: 1
+            }],
             mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/index.html?payment=success`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/index.html?payment=cancel`,
+            success_url: `${frontendUrl}/index.html?payment=success`,
+            cancel_url: `${frontendUrl}/index.html?payment=cancel`
         });
 
+        console.log('   ✅ sessão criada:', session.url);
         res.json({ url: session.url });
+        
     } catch (err) {
-        console.error('ERRO DETALHADO DO STRIPE:', err.message);
-        res.status(500).json({ message: 'Erro ao iniciar pagamento: ' + err.message });
+        console.error('❌ ERRO NO CHECKOUT:', err);
+        console.error('   stack:', err.stack);
+        res.status(500).json({ message: 'Erro ao criar sessão: ' + err.message });
     }
 };
 
-module.exports = { createCheckoutSession, webhook: createCheckoutSession, webhookRaw };
+module.exports = { createCheckoutSession, webhookRaw };
