@@ -226,6 +226,23 @@ header {
     box-shadow: 0 4px 15px rgba(217, 119, 6, 0.3);
 }
 
+.logout-btn-mobile {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.logout-btn-mobile:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
 .pro-badge {
     background: #fbbf24;
     color: #000;

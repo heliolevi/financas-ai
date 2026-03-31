@@ -6,12 +6,13 @@ const transactionSchema = new mongoose.Schema({
     category: { type: String, required: true },
     description: { type: String },
     payment_method: { type: String, required: true },
-    date: { type: String, required: true }, // Mantendo String para formato YYYY-MM-DD
+    date: { type: String, required: true },
     installments: { type: Number, default: 1 },
     installment_index: { type: Number, default: 1 },
-    group_id: { type: String }, // ID único para compras parceladas
+    group_id: { type: String },
     timestamp: { type: Date, default: Date.now },
-    autoCategorized: { type: Boolean, default: false }
+    autoCategorized: { type: Boolean, default: false },
+    importHash: { type: String, index: true }
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

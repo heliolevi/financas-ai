@@ -1,6 +1,18 @@
 const Transaction = require('../models/Transaction');
 const { categorize } = require('./categorizer');
 
+function parseAmount(value) {
+    if (!value || typeof value !== 'string') return 0;
+    let cleaned = value.replace(/[R$.\s]/g, '');
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+        cleaned = cleaned.replace(/\.(?=\d{3})/g, '').replace(',', '.');
+    } else if (cleaned.includes(',')) {
+        cleaned = cleaned.replace(',', '.');
+    }
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+}
+
 async function parseOFX(ofxContent, userId) {
     const transactions = [];
     const lines = ofxContent.split('\n');
@@ -15,17 +27,19 @@ async function parseOFX(ofxContent, userId) {
         } else if (line.includes('</STMTTRN>')) {
             inTransaction = false;
             if (currentTransaction.amount && currentTransaction.date) {
+                const amount = parseAmount(currentTransaction.amount);
                 transactions.push({
                     user_id: userId,
-                    amount: Math.abs(parseFloat(currentTransaction.amount)),
+                    amount: Math.abs(amount),
                     category: categorize(currentTransaction.description || ''),
                     description: currentTransaction.description || 'Importado',
-                    payment_method: currentTransaction.amount < 0 ? 'Cartão de Crédito' : 'Dinheiro',
+                    payment_method: amount < 0 ? 'Cartão de Crédito' : 'Dinheiro',
                     date: currentTransaction.date,
                     installments: 1,
                     installment_index: 1,
                     group_id: null,
-                    imported: true
+                    imported: true,
+                    importHash: `${userId}-${currentTransaction.date}-${Math.abs(amount)}-${(currentTransaction.description || 'Importado').substring(0, 20)}`
                 });
             }
         } else if (inTransaction) {
@@ -73,7 +87,7 @@ async function parseCSV(csvContent, userId) {
         
         let dateStr = cols[dateIndex] || '';
         let description = cols[descIndex] || 'Importado';
-        let amount = parseFloat(cols[amountIndex]?.replace(/[R$.\s]/g, '').replace(',', '.'));
+        let amount = parseAmount(cols[amountIndex]);
         
         if (!amount || isNaN(amount)) continue;
         
@@ -86,6 +100,7 @@ async function parseCSV(csvContent, userId) {
         }
         
         const isExpense = amount < 0;
+        const hash = `${userId}-${date}-${Math.abs(amount)}-${description.substring(0, 20)}`;
         transactions.push({
             user_id: userId,
             amount: Math.abs(amount),
@@ -96,7 +111,8 @@ async function parseCSV(csvContent, userId) {
             installments: 1,
             installment_index: 1,
             group_id: null,
-            imported: true
+            imported: true,
+            importHash: hash
         });
     }
     
@@ -115,7 +131,11 @@ async function importTransactions(userId, fileContent, fileType) {
     const imported = [];
     for (const t of transactions) {
         try {
-            const newT = new Transaction(t);
+            const existing = await Transaction.findOne({ importHash: t.importHash });
+            if (existing) continue;
+            
+            const { importHash, ...transactionData } = t;
+            const newT = new Transaction(transactionData);
             await newT.save();
             imported.push(t);
         } catch (e) {
