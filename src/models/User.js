@@ -58,8 +58,9 @@ const userSchema = new mongoose.Schema({
 
 /**
  * Hook pré-gravação: valida e normaliza dados.
+ * Sintaxe corrigida para Mongoose 9.x
  */
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function() {
     // Garante que renda líquida não seja maior que bruta
     if (this.netIncome > this.grossIncome) {
         this.netIncome = this.grossIncome;
@@ -68,7 +69,7 @@ userSchema.pre('save', function(next) {
     if (this.creditCardUsed > this.creditCardLimit) {
         this.creditCardUsed = this.creditCardLimit;
     }
-    next();
+    // Não precisa chamar next() no Mongoose 9+
 });
 
 /**
