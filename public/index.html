@@ -60,6 +60,7 @@
                     <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
                 </div>
                 <div class="header-right">
+                    <button id="chat-toggle-btn" class="icon-btn" aria-label="Abrir Chat" onclick="toggleChat()">💬</button>
                     <button id="upgrade-btn" class="pro-btn" style="display: none;">⭐ Pro</button>
                     <div class="user-avatar" id="user-avatar">U</div>
                 </div>
@@ -90,7 +91,7 @@
                             <span class="nav-label">Análise</span>
                         </button>
                         <div class="nav-divider"></div>
-                        <button id="logout-btn" class="nav-item logout">
+                        <button id="logout-btn" class="nav-item logout" onclick="doLogout()">
                             <span class="nav-icon">🚪</span>
                             <span class="nav-label">Sair</span>
                         </button>

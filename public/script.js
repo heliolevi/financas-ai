@@ -828,13 +828,27 @@ if (window.location.search.includes('payment=success')) {
  * Limpa o token e recarrega a página.
  */
 function doLogout() {
+    console.log('doLogout executado');
     TOKEN = null;
     USERNAME = null;
     localStorage.clear();
-    window.location.href = 'index.html';
+    
+    // Esconder dashboard e mostrar auth
+    const authSection = document.getElementById('auth-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    if (authSection) authSection.classList.add('active');
+    if (dashboardSection) dashboardSection.classList.remove('active');
+    
+    // Limpar URL
+    window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-logoutBtn.addEventListener('click', doLogout);
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', doLogout);
+    console.log('logoutBtn listener attached');
+} else {
+    console.error('logoutBtn não encontrado!');
+}
 
 // Handle removed HTML elements gracefully
 if (tPayment) {
@@ -1235,19 +1249,30 @@ function addChatMessage(text, sender) {
 
 // Toggle Chat Lumi
 function toggleChat() {
+    console.log('toggleChat executado');
     const panel = document.getElementById('lumi-chat-panel');
+    const wrapper = document.getElementById('lumi-avatar-wrapper');
+    const chatToggleBtn = document.getElementById('chat-toggle-btn');
+    console.log('panel:', panel, 'wrapper:', wrapper, 'chatToggleBtn:', chatToggleBtn);
+    
     if (panel) {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 }
+window.toggleChat = toggleChat;
+
+// Adicionar listener no botão do header também
+document.getElementById('chat-toggle-btn')?.addEventListener('click', toggleChat);
 
 // Avatar interaction - clique para abrir o chat
 const lumiAvatarWrapper = document.getElementById('lumi-avatar-wrapper');
 const lumiAvatar = document.getElementById('lumi-avatar');
 const lumiStatus = document.getElementById('lumi-status');
 
+console.log('lumiAvatarWrapper:', lumiAvatarWrapper);
 if (lumiAvatarWrapper) {
     lumiAvatarWrapper.addEventListener('click', () => {
+        console.log('Avatar clicado!');
         toggleChat();
         if (lumiAvatar) {
             lumiAvatar.style.transform = 'rotate(360deg)';
