@@ -13,9 +13,9 @@ const userSchema = new mongoose.Schema({
     bankName: { type: String, default: '', maxlength: 100 },
     bankBalance: { type: Number, default: 0, min: 0 },
     creditCardLimit: { type: Number, default: 0, min: 0 },
-    creditCardUsed: { type: Number, default: 0, min: 0, validate: { validator: function(v) { return v <= this.creditCardLimit; }, message: 'Valor usado não pode exceder o limite do cartão' }},
+    creditCardUsed: { type: Number, default: 0, min: 0, validate: { validator: function(v) { return v <= this.creditCardLimit || this.creditCardLimit === 0; }, message: 'Valor usado não pode exceder o limite do cartão' }},
     creditCardBill: { type: Number, default: 0, min: 0 },
-    creditCardDueDate: { type: Number, default: 0, min: 1, max: 31 },
+    creditCardDueDate: { type: Number, default: null, min: 1, max: 31 },
     fixedExpenses: [{
         name: { type: String, required: true, maxlength: 100 },
         amount: { type: Number, required: true, min: 0 },
