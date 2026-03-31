@@ -1,6 +1,22 @@
+/**
+ * =============================================================================
+ * SERVIÇO DE ALERTAS PROATIVOS
+ * =============================================================================
+ * Responsável por: Gerar alertas automáticos baseados na situação financeira.
+ * Usa dados do mês atual para gerar avisos de cartão, orçamento e metas.
+ * =============================================================================
+ */
+
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 
+/**
+ * Gera alertas proativos para o dashboard.
+ * Analisa: cartão de crédito, orçamento, comprometimento de renda, metas.
+ * 
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de alertas { type, title, message, action }
+ */
 const getProactiveAlerts = async (userId) => {
     const user = await User.findById(userId);
     if (!user) return [];

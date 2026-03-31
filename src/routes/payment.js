@@ -1,14 +1,20 @@
+/**
+ * =============================================================================
+ * ROTAS DE PAGAMENTOS (STRIPE)
+ * =============================================================================
+ * Endpoints: /api/payments/*
+ * =============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Rota para criar o checkout (protegida por login)
+// POST /api/payments/create-checkout → Criar sessão de checkout (protegido)
 router.post('/create-checkout', authMiddleware, paymentController.createCheckoutSession);
 
-// Rota do Webhook (NÃO deve ter authMiddleware pois quem chama é o Stripe)
-// O middleware raw está configurado diretamente no app.js para esta rota
-// router.post('/webhook', ...) - descomentar se quiser usar a rota antiga
-// O webhook correto agora está em /api/payments/webhook via app.js
+// Webhook configurado diretamente no app.js (rota /api/payments/webhook)
+// Não precisa de authMiddleware pois quem chama é o Stripe
 
 module.exports = router;

@@ -1,3 +1,15 @@
+/**
+ * =============================================================================
+ * SERVIÇO DE GAMIFICAÇÃO
+ * =============================================================================
+ * Responsável por: Sistema de conquistas e progresso do usuário.
+ * Inclui: badges, tracking de conquistas, sugestões de próximas metas.
+ * =============================================================================
+ */
+
+// ==========================================
+// CONQUISTAS DEFINIDAS
+// ==========================================
 const achievements = [
     { id: 'first_expense', name: 'Primeiro Passo', desc: 'Registre sua primeira despesa', icon: '🎯', condition: (stats) => stats.transactionCount >= 1 },
     { id: 'ten_expenses', name: 'Começando Bem', desc: 'Registre 10 despesas', icon: '📝', condition: (stats) => stats.transactionCount >= 10 },
@@ -28,6 +40,12 @@ const achievements = [
     { id: 'no_debt', name: 'Sem Dívidas', desc: 'Não use cheque especial', icon: '🛡️', condition: (stats) => stats.bankBalance > 0 }
 ];
 
+/**
+ * Calcula conquistas baseadas nas estatísticas do usuário.
+ * 
+ * @param {Object} userStats - Estatísticas do usuário
+ * @returns {Object} { unlocked: [], available: [], progress: number }
+ */
 function calculateAchievements(userStats) {
     const unlocked = [];
     const available = [];
@@ -43,12 +61,27 @@ function calculateAchievements(userStats) {
     return { unlocked, available, progress: (unlocked.length / achievements.length) * 100 };
 }
 
+/**
+ * Retorna as próximas conquistas a serem alcançadas.
+ * 
+ * @param {Object} userStats - Estatísticas do usuário
+ * @param {number} count - Quantidade a retornar (padrão: 3)
+ * @returns {Array} Array de conquistas disponíveis
+ */
 function getNextAchievements(userStats, count = 3) {
     return achievements
         .filter(a => !a.condition(userStats))
         .slice(0, count);
 }
 
+/**
+ * Detecta quais conquistas foram recém-desbloqueadas.
+ * Compara estado anterior vs atual para identificar ganhos.
+ * 
+ * @param {Object} oldStats - Estatísticas anteriores
+ * @param {Object} newStats - Estatísticas atuais
+ * @returns {Array} Array de novas conquistas alcançadas
+ */
 function checkNewAchievements(oldStats, newStats) {
     const newAchievements = [];
     

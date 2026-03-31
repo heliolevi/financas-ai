@@ -1,13 +1,22 @@
+/**
+ * =============================================================================
+ * ROTAS DE AUTENTICAÇÃO
+ * =============================================================================
+ * Endpoints: /api/auth/*
+ * =============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// Rota para registro de novo usuário
+// POST /api/auth/register → Cria novo usuário
 router.post('/register', authController.register);
-// Rota para login de usuário existente
+
+// POST /api/auth/login → Login e retorna JWT token
 router.post('/login', authController.login);
 
-// Rota para pegar dados do usuário logado
+// GET /api/auth/me → Retorna dados do usuário logado (protegido)
 const authMiddleware = require('../middleware/authMiddleware');
 router.get('/me', authMiddleware, authController.getMe);
 

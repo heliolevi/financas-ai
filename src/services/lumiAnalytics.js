@@ -1,5 +1,20 @@
+/**
+ * =============================================================================
+ * SERVIÇO DE ANALYTICS DA LUMI
+ * =============================================================================
+ * Responsável por: Análises avançadas usadas no chat com IA.
+ * Inclui: comparativo mensal, previsão, sugestões de corte, alertas reativos.
+ * =============================================================================
+ */
+
 const Transaction = require('../models/Transaction');
 
+/**
+ * Compara gastos do mês atual vs mês anterior.
+ * 
+ * @param {string} userId - ID do usuário
+ * @returns {Object} { current, previous, growth, analysis }
+ */
 const getMonthlyComparison = async (userId) => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -53,6 +68,14 @@ const getMonthlyComparison = async (userId) => {
     };
 };
 
+/**
+ * Analisa crescimento de gastos e gera alertas.
+ * 
+ * @param {number} growth - Porcentagem de crescimento
+ * @param {Object} currentByCat - Gastos por categoria mês atual
+ * @param {Object} prevByCat - Gastos por categoria mês anterior
+ * @returns {Array} Array de análises
+ */
 const analyzeGrowth = (growth, currentByCat, prevByCat) => {
     const analysis = [];
     
@@ -78,6 +101,13 @@ const analyzeGrowth = (growth, currentByCat, prevByCat) => {
     return analysis;
 };
 
+/**
+ * Prevê gastos do mês baseado na média diária atual.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {number} monthlyBudget - Orçamento mensal definido
+ * @returns {Object} { currentTotal, dailyAverage, projectedTotal, status, message }
+ */
 const getSpendingForecast = async (userId, monthlyBudget) => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -161,6 +191,13 @@ const getSpendingForecast = async (userId, monthlyBudget) => {
     };
 };
 
+/**
+ * Sugere onde cortar gastos baseado em padrões anormais.
+ * Compara mês atual vs média dos últimos 3 meses.
+ * 
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de sugestões de corte
+ */
 const getSmartCutSuggestions = async (userId) => {
     const now = new Date();
     const currentYear = now.getFullYear();
