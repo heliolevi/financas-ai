@@ -12,10 +12,10 @@ const rateLimit = require('express-rate-limit');
 const paymentController = require('../controllers/paymentController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Rate limiting específico para payments/checkout (mais generoso)
+// Rate limiting específico para payments/checkout - maior limite para checkout
 const paymentLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 10,
+    max: 30,  // Aumentado para 30 req/min para checkout
     message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
 });
 

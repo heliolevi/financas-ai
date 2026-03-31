@@ -43,11 +43,12 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-// Rate limiting geral (100 requisições por 15 minutos)
+// Rate limiting geral (100 requisições por 15 minutos) - Pula rotas de payment
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
+    message: { message: 'Muitas requisições. Tente novamente mais tarde.' },
+    skip: (req) => req.path.startsWith('/api/payments') || req.path === '/upgrade.html'
 });
 app.use(generalLimiter);
 
