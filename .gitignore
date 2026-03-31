@@ -2,3 +2,9 @@ node_modules
 .env
 src/config/database.sqlite
 .DS_Store
+coverage/
+.env.local
+logs
+*.log
+.idea/
+.vscode/

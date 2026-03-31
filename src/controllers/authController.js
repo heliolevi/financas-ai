@@ -7,9 +7,9 @@
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../../models/User');
-const UserEntity = require('../../domain/entities/User');
-const { AppError, ValidationError, NotFoundError, UnauthorizedError } = require('../../shared/errors/AppError');
+const User = require('../models/User');
+const UserEntity = require('../domain/entities/User');
+const { AppError, ValidationError, NotFoundError, UnauthorizedError, ConflictError } = require('../shared/errors/AppError');
 
 class AuthController {
     async register(req, res, next) {
