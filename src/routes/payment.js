@@ -19,8 +19,13 @@ const paymentLimiter = rateLimit({
     message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
 });
 
+// Wrapper para garantir que o controller receba os parâmetros corretos
+const createCheckoutHandler = (req, res, next) => {
+    paymentController.createCheckoutSession(req, res).catch(next);
+};
+
 // POST /api/payments/create-checkout → Criar sessão de checkout (protegido)
-router.post('/create-checkout', paymentLimiter, authMiddleware, paymentController.createCheckoutSession);
+router.post('/create-checkout', paymentLimiter, authMiddleware, createCheckoutHandler);
 
 // Webhook configurado diretamente no app.js (rota /api/payments/webhook)
 // Não precisa de authMiddleware pois quem chama é o Stripe
