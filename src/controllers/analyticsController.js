@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE ANALYTICS
+ * =============================================================================
+ * Responsável por: Previsão de gastos, detecção de assinaturas,
+ * e insights gerados por IA.
+ * =============================================================================
+ */
+
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const Groq = require('groq-sdk');
@@ -9,6 +18,13 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
+/**
+ * Prevê gastos do mês atual baseando-se na média histórica.
+ * Usa dados dos últimos 6 meses para calcular média e tendência.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { prediction: { expectedMonthly, projectedCurrentMonth, ... }, historical, insights }
+ */
 const predictExpenses = async (req, res) => {
     try {
         const userId = req.userId;
@@ -89,10 +105,20 @@ const predictExpenses = async (req, res) => {
     }
 };
 
+/**
+ * Gera insights automáticos baseados nos dados históricos.
+ * Analisa tendência, maiores despesas e saúde financeira.
+ * 
+ * @param {Object} monthlyTotals - { '2026-01': 1500, '2026-02': 1800, ... }
+ * @param {Object} avgByCategory - { 'Alimentação': 500, 'Transporte': 300, ... }
+ * @param {Object} user - Dados do usuário
+ * @returns {Array} Array de { type, text }
+ */
 async function generateInsights(monthlyTotals, avgByCategory, user) {
     const insights = [];
     const months = Object.keys(monthlyTotals).sort();
     
+    // Analisa tendência dos últimos 3 meses
     if (months.length >= 3) {
         const recent = monthlyTotals[months[months.length - 1]];
         const older = monthlyTotals[months[months.length - 3]];
@@ -105,11 +131,13 @@ async function generateInsights(monthlyTotals, avgByCategory, user) {
         }
     }
     
+    // Maior categoria de gastos
     const sortedCats = Object.entries(avgByCategory).sort((a, b) => b[1] - a[1]);
     if (sortedCats.length > 0) {
         insights.push({ type: 'info', text: `Sua maior despesa média é ${sortedCats[0][0]} (R$ ${sortedCats[0][1].toFixed(2)}/mês)` });
     }
     
+    // Alerta de comprometimento por fixas
     const fixedTotal = (user.fixedExpenses || []).reduce((s, e) => s + e.amount, 0);
     const income = user.netIncome || 0;
     if (income > 0 && fixedTotal > income * 0.5) {
@@ -117,8 +145,15 @@ async function generateInsights(monthlyTotals, avgByCategory, user) {
     }
     
     return insights;
-}
+};
 
+/**
+ * Detecta assinaturas recorrentes nas transações do usuário.
+ * Usa palavras-chave e padrão de valores similares para identificar.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { subscriptions: [...], summary: { total, monthlyTotal, yearlyEstimate } }
+ */
 const detectSubscriptions = async (req, res) => {
     try {
         const userId = req.userId;
@@ -183,6 +218,13 @@ const detectSubscriptions = async (req, res) => {
     }
 };
 
+/**
+ * Gera insight rápido via IA (alternativa ao proactive insight).
+ * Útil para a aba de Analytics.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { insight: string }
+ */
 const getAIInsight = async (req, res) => {
     try {
         const userId = req.userId;

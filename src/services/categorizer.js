@@ -1,3 +1,16 @@
+/**
+ * =============================================================================
+ * SERVIÇO DE CATEGORIZAÇÃO AUTOMÁTICA
+ * =============================================================================
+ * Responsável por: Classificar transações baseada em palavras-chave.
+ * Usa regras keyword-based para determinar a categoria.
+ * =============================================================================
+ */
+
+// ==========================================
+// REGRAS DE CATEGORIZAÇÃO
+// ==========================================
+// Mapeia categorias para palavras-chave encontradas na descrição
 const categoryRules = {
     'Alimentação': [
         'ifood', 'uber eats', 'rapper', 'delivery', 'restaurante', 'lanchonete', 'pizza', 'hamburger',
@@ -47,6 +60,13 @@ const categoryRules = {
     'Outros': []
 };
 
+/**
+ * Classifica uma descrição nas categorias predefinidas.
+ * Usa matching de keywords, priorizando a palavra mais longa encontrada.
+ * 
+ * @param {string} description - Descrição da transação
+ * @returns {string} Categoria identificada ('Alimentação', 'Transporte', etc)
+ */
 function categorize(description) {
     if (!description) return 'Outros';
     
@@ -54,9 +74,11 @@ function categorize(description) {
     let matchFound = null;
     let longestMatch = 0;
     
+    // Itera sobre todas as categorias e suas keywords
     for (const [category, keywords] of Object.entries(categoryRules)) {
         for (const keyword of keywords) {
             if (descLower.includes(keyword.toLowerCase())) {
+                // Prioriza match mais longo (mais específico)
                 if (keyword.length > longestMatch) {
                     longestMatch = keyword.length;
                     matchFound = category;
@@ -68,6 +90,13 @@ function categorize(description) {
     return matchFound || 'Outros';
 }
 
+/**
+ * Retorna sugestão de categoria com confiança.
+ * Útil para mostrar ao usuário antes de confirmar.
+ * 
+ * @param {string} description - Descrição da transação
+ * @returns {Object} { suggested: string, confidence: number, alternatives: string[] }
+ */
 function suggestCategory(description) {
     const category = categorize(description);
     return {
@@ -75,16 +104,24 @@ function suggestCategory(description) {
         confidence: category === 'Outros' ? 0.5 : 0.9,
         alternatives: getAlternatives(description)
     };
-}
+};
 
+/**
+ * Gera alternativas de categorização para descrições ambíguas.
+ * 
+ * @param {string} description - Descrição da transação
+ * @returns {string[]} Categorias alternativas
+ */
 function getAlternatives(description) {
     const descLower = description.toLowerCase();
     const alternatives = [];
     
+    // Exemplos de ambiguidade
     if (descLower.includes('pizza') || descLower.includes('burger')) {
         alternatives.push('Lazer');
     }
     if (descLower.includes('farmácia') || descLower.includes('remédio')) {
+        // Note: Farmácia pode ser Saúde ou Alimentação dependendo do contexto
         alternatives.push('Alimentação');
     }
     

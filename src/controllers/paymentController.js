@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE PAGAMENTOS (STRIPE)
+ * =============================================================================
+ * Responsável por: Checkout session, Webhook de eventos do Stripe,
+ * e atualização do status de assinatura do usuário.
+ * =============================================================================
+ */
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const User = require('../models/User');
 
@@ -5,6 +14,7 @@ const User = require('../models/User');
 const processedEvents = new Map();
 const IDEMPOTENCY_WINDOW = 24 * 60 * 60 * 1000; // 24 horas
 
+// Limpa eventos antigos a cada hora
 setInterval(() => {
     const now = Date.now();
     for (const [key, timestamp] of processedEvents) {
@@ -15,8 +25,13 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 /**
- * Webhook raw (sem verificação de auth) para receber eventos do Stripe
- * Usa raw body para validar assinatura
+ * Webhook raw (sem verificação de auth) para receber eventos do Stripe.
+ * IMPORTANTE: Rota configurada no app.js ANTES do express.json()
+ * Usa raw body para validar assinatura do Stripe.
+ * Implementa idempotência para evitar processamento duplicado.
+ * 
+ * @param {Object} req - Body raw com evento do Stripe
+ * @param {Object} res - Confirmação de recebimento
  */
 const webhookRaw = async (req, res) => {
     const sig = req.headers['stripe-signature'];
@@ -48,6 +63,16 @@ const webhookRaw = async (req, res) => {
     res.json({ received: true });
 };
 
+/**
+ * Processa eventos do Stripe e atualiza o status da assinatura.
+ * Eventos tratados:
+ * - customer.subscription.created/updated → Status atualizado
+ * - customer.subscription.deleted → Assinatura cancelada
+ * - invoice.payment_succeeded → Pagamento confirmado
+ * - invoice.payment_failed → Pagamento falhou
+ * 
+ * @param {Object} event - Evento do Stripe
+ */
 async function processStripeEvent(event) {
     switch (event.type) {
         case 'customer.subscription.created':
@@ -95,6 +120,14 @@ async function processStripeEvent(event) {
         }
     }
 }
+
+/**
+ * Cria sessão de checkout do Stripe para assinatura Lumi Pro.
+ * Cria customer no Stripe se ainda não existir.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { url: string } (URL do checkout Stripe)
+ */
 const createCheckoutSession = async (req, res) => {
     const userId = req.userId;
 

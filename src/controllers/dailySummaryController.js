@@ -1,6 +1,22 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE RESUMO DIÁRIO
+ * =============================================================================
+ * Responsável por: Dados consolidados do dia atual para o dashboard.
+ * Retorna: total gasto hoje, total mês, uso do orçamento, categorias.
+ * =============================================================================
+ */
+
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 
+/**
+ * Retorna resumo financeiro do dia atual.
+ * Inclui: hoje, mês, orçamento, categorias principais.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { date, day, totalSpent, fixedTotal, totalWithFixed, todaySpent, budget, budgetUsed, categories, status, message }
+ */
 const getDailySummary = async (req, res) => {
     try {
         const userId = req.userId;

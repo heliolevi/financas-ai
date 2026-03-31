@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE RELATÓRIOS
+ * =============================================================================
+ * Responsável por: Exportação de dados em PDF e Excel.
+ * Usa jsPDF para PDF e ExcelJS para planilhas.
+ * =============================================================================
+ */
+
 const Transaction = require('../models/Transaction');
 const { jsPDF } = require('jspdf');
 const autoTable = require('jspdf-autotable').default || require('jspdf-autotable');
@@ -5,6 +14,11 @@ const ExcelJS = require('exceljs');
 
 /**
  * Gera um PDF com o histórico de transações.
+ * Inclui: cabeçalho com branding Lumi Gold, tabela com dados,
+ * e informações de geração.
+ * 
+ * @param {Object} req - query: { month, year }
+ * @param {Object} res - PDF binary
  */
 exports.exportPDF = async (req, res) => {
     try {

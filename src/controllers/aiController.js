@@ -1,3 +1,14 @@
+/**
+ * =============================================================================
+ * CONTROLADOR DE INTELIGÊNCIA ARTIFICIAL (LUMI)
+ * =============================================================================
+ * Responsável por: Chat com IA, análise de imagens (notas fiscais),
+ * insights proativos e controle de acesso Pro (Stripe).
+ * 
+ * Integração: Groq API (Llama 3.3) para processamento de linguagem natural.
+ * =============================================================================
+ */
+
 const Groq = require('groq-sdk');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
@@ -7,14 +18,22 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+// Inicializa cliente Groq com chave da API do .env
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// --- FUNÇÕES AUXILIARES (HELPERS) ---
+// ==========================================
+// FUNÇÕES AUXILIARES (HELPERS)
+// ==========================================
 
 /**
- * Salva uma mensagem no histórico para que a Lumi tenha "memória".
+ * Salva uma mensagem no histórico do chat.
+ * Usado para dar "memória" à conversa com a Lumi.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {string} role - 'user' ou 'assistant'
+ * @param {string} content - Texto da mensagem
  */
 const saveMessage = async (userId, role, content) => {
     try {
@@ -25,7 +44,12 @@ const saveMessage = async (userId, role, content) => {
 };
 
 /**
- * Recupera as últimas conversas para dar contexto à IA.
+ * Recupera as últimas N mensagens do histórico.
+ * Usado para manter contexto nas conversas.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {number} limit - Quantidade de mensagens (padrão: 10)
+ * @returns {Array} Array de { role, content }
  */
 const getHistory = async (userId, limit = 10) => {
     try {
@@ -40,7 +64,11 @@ const getHistory = async (userId, limit = 10) => {
 };
 
 /**
- * Busca transações recentes para que a Lumi saiba o que o usuário já gastou.
+ * Busca transações do mês atual para contextualizar a IA.
+ * A Lumi precisa saber o que o usuário já gastou para dar advice.
+ * 
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de transações formatadas
  */
 const getTransactionsFromDB = async (userId) => {
     try {
@@ -66,10 +94,19 @@ const getTransactionsFromDB = async (userId) => {
         }));
     } catch (err) {
         console.error("Erro ao buscar transações:", err);
-        return [];
+        return []
     }
 };
 
+/**
+ * Grava uma transação no banco a partir de dados estruturados.
+ * Suporta parcelamento (até 24 parcelas).
+ * Valida campos para evitar dados inválidos.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {Object} data - { amount, date, description, category, payment_method, installments }
+ * @returns {string|null} ID da primeira transação criada ou null em caso de erro
+ */
 const recordTransaction = async (userId, data) => {
     try {
         console.log(`[LUMI DEBUG] Tentando gravar para User: ${userId}`, data);
@@ -84,6 +121,7 @@ const recordTransaction = async (userId, data) => {
             baseDateStr = new Date().toISOString().split('T')[0];
         }
 
+        // Limita parcelas entre 1 e 24, valor entre 0 e 1 milhão
         const numInstallments = Math.min(Math.max(1, Number(data.installments) || 1), 24);
         const totalAmount = Math.min(Math.max(0, Number(data.amount) || 0), 1000000);
         
@@ -130,7 +168,11 @@ const recordTransaction = async (userId, data) => {
 };
 
 /**
- * Remove um gasto identificado pela IA via ID.
+ * Remove uma transação específica via ID.
+ * A IA pode pedir para deletar quando identificar um erro.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {string} id - ID da transação a deletar
  */
 const deleteTransactionById = async (userId, id) => {
     try {
@@ -214,8 +256,29 @@ const deleteAllTransactions = async (userId) => {
     }
 };
 
-// --- FUNÇÃO PRINCIPAL ---
+// ==========================================
+// FUNÇÃO PRINCIPAL: CHAT COM LUMI
+// ==========================================
 
+/**
+ * Processa mensagem do usuário e retorna resposta da IA.
+ * Fluxo:
+ * 1. Verifica assinatura (bloqueia não-pros)
+ * 2. Coleta contexto (histórico + transações + perfil)
+ * 3. Envia para Groq API (Llama 3.3)
+ * 4. Executa ações solicitadas pela IA (CRUD transações)
+ * 5. Salva resposta no histórico
+ * 
+ * Tags especiais da IA (executadas silenciosamente):
+ * - [[SAVE:{...}]] → Grava transação
+ * - [[UPDATE:ID,{...}]] → Atualiza transação
+ * - [[DELETE:ID]] → Deleta transação
+ * - [[DELETE_ALL]] → Deleta todas as transações
+ * - [[UPDATE_PROFILE:{...}]] → Atualiza perfil
+ * 
+ * @param {Object} req - body: { message }
+ * @param {Object} res - { response, transactionAdded }
+ */
 const analyzeFinances = async (req, res) => {
     const { message } = req.body;
     const userId = req.userId;
@@ -224,8 +287,11 @@ const analyzeFinances = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
 
-        // BLOQUEIO: Se o usuário não for pagante ('active'), a Lumi não responde lógica financeira profunda
-        // BYPASS PARA O CRIADOR (Hélio)
+        // ==========================================
+        // CONTROLE DE ACESSO (PAYWALL)
+        // ==========================================
+        // Se não for assinante ('active'), retorna mensagem de upgrade
+        // Usuários especiais (helio.vieira, admin) têm acesso livre
         const isCreator = user.username === 'helio.vieira' || user.username === 'admin';
         
         if (user.subscriptionStatus !== 'active' && !isCreator) {
@@ -236,29 +302,53 @@ const analyzeFinances = async (req, res) => {
             });
         }
 
-        // 1. Salva a pergunta do usuário no banco
+        // 1. Salva a pergunta do usuário no banco (para contexto futuro)
         await saveMessage(userId, 'user', message);
 
-        // 2. ColetaContexto: Memória e Transações
+        // ==========================================
+        // COLETA DE CONTEXTO
+        // ==========================================
+        
+        // Histórico de conversas anteriores
         const history = await getHistory(userId);
+        
+        // Transações do mês atual
         const transactions = await getTransactionsFromDB(userId);
         
+        // Calcula métricas do mês
         const total = transactions.reduce((acc, t) => acc + t.amount, 0);
         const cats = {};
         transactions.forEach(t => cats[t.category] = (cats[t.category] || 0) + t.amount);
         const creditSpent = transactions.filter(t => t.payment_method === 'Cartão de Crédito').reduce((acc, t) => acc + t.amount, 0);
         const creditPct = total > 0 ? (creditSpent / total) * 100 : 0;
 
+        // Lista formatada de transações (para IA editar/deletar)
         const transactionsSummary = transactions.map(t => `- ID: ${t.id} | ${t.date} | ${t.description} | R$ ${t.amount} | ${t.category}`).join('\n            ');
 
+        // Despesas fixas do perfil
         const totalFixed = user.fixedExpenses ? user.fixedExpenses.reduce((acc, e) => acc + e.amount, 0) : 0;
 
-        // NOVAS ANÁLISES: Comparativo, Previsão e Sugestões
+        // ==========================================
+        // ANÁLISES AVANÇADAS
+        // ==========================================
+        
+        // Comparativo mês atual vs anterior
         const monthlyComparison = await lumiAnalytics.getMonthlyComparison(userId);
+        
+        // Previsão de gastos até fim do mês
         const forecast = await lumiAnalytics.getSpendingForecast(userId, user.monthlyBudget || 0);
+        
+        // Sugestões de onde cortar gastos
         const smartCuts = await lumiAnalytics.getSmartCutSuggestions(userId);
+        
+        // Alertas reativos baseados na situação atual
         const reactiveAlerts = await lumiAnalytics.checkReactiveAlerts(user, totalFixed);
 
+        // ==========================================
+        // MONTA PROMPT PARA IA
+        // ==========================================
+        
+        // Resumo do perfil financeiro
         const profileSummary = `
             Renda Bruta: R$ ${user.grossIncome || 0}
             Renda Líquida: R$ ${user.netIncome || 0}
@@ -271,22 +361,27 @@ const analyzeFinances = async (req, res) => {
 
         const currentDate = new Date().toLocaleDateString('pt-BR');
         
+        // Contexto de alertas
         const alertsContext = reactiveAlerts.length > 0 
             ? `\n--- ⚠️ ALERTAS REATIVOS ---\n${reactiveAlerts.map(a => `[${a.type.toUpperCase()}] ${a.title}: ${a.message}`).join('\n')}`
             : '';
 
+        // Contexto de comparativo
         const comparisonContext = monthlyComparison.previous.count > 0
             ? `\n--- 📊 COMPARATIVO MENSAL ---\nMês Anterior: R$ ${monthlyComparison.previous.total.toFixed(2)}\nMês Atual: R$ ${monthlyComparison.current.total.toFixed(2)}\nVariação: ${monthlyComparison.growth > 0 ? '+' : ''}${monthlyComparison.growth.toFixed(1)}%\nAnálise: ${monthlyComparison.analysis.map(a => a.message).join(' | ')}`
             : '';
 
+        // Contexto de previsão
         const forecastContext = forecast.monthlyBudget > 0
             ? `\n--- 🔮 PREVISÃO DO MÊS ---\nMedia Diária: R$ ${forecast.dailyAverage.toFixed(2)}\nProjecção Total: R$ ${forecast.projectedTotal.toFixed(2)}\nOrçamento: R$ ${forecast.monthlyBudget}\nStatus: ${forecast.status} - ${forecast.message}`
             : '';
 
+        // Contexto de sugestões de corte
         const cutsContext = smartCuts.length > 0
             ? `\n--- ✂️ SUGESTÕES DE CORTE ---\n${smartCuts.map(c => `- ${c.category}: R$ ${c.excess.toFixed(2)} acima da média (atual: R$ ${c.currentSpent.toFixed(2)}, média: R$ ${c.monthlyAvg.toFixed(2)})`).join('\n')}`
             : '';
 
+        // Contexto dinâmico completo
         const dynamicContext = `
             Cliente: ${user.username}
             Data Atual: ${currentDate}
@@ -454,7 +549,146 @@ ${dynamicContext}`
 /**
  * Gera um insight proativo automático baseado no histórico recente do usuário.
  */
+// ==========================================
+// ROTAS DE AI
+// ==========================================
+
+/**
+ * analisaFinances - Função principal do chat com Lumi.
+ * Ver arquivo completo acima para detalhes.
+ * tags especiais: [[SAVE:{}]], [[UPDATE:ID,{}]], [[DELETE:ID]], [[DELETE_ALL]], [[UPDATE_PROFILE:{}]]
+ */
+
+/**
+ * Gera insight proativo automático (mensagem de boas-vindas).
+ * Usado na tela inicial do dashboard.
+ * 
+ * @param {Object} req - userId do middleware
+ * @param {Object} res - { insight: string }
+ */
 const getProactiveInsight = async (req, res) => {
+    const userId = req.userId;
+    try {
+        const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);
+        const user = await User.findById(userId);
+
+        if (!user.netIncome || user.netIncome === 0) {
+            return res.json({ insight: `Olá ${user.username}! Eu sou a Lumi, sua Wealth Manager pessoal. Para começarmos sua jornada de lucros e controle, preciso que façamos seu onboarding financeiro. Qual é a sua renda bruta e líquida mensal?` });
+        }
+
+        if (transactions.length === 0) {
+            return res.json({ insight: `Olá ${user.username}! Já preparei seu perfil. Quando você começar a registrar seus gastos variáveis, poderei te dar um diagnóstico completo em tempo real. Que tal anotar sua primeira compra hoje? 😊` });
+        }
+
+        const summary = transactions.map(t => `${t.date}: ${t.description} (R$ ${t.amount}) [${t.category}]`).join('\n');
+        const currentDate = new Date().toLocaleDateString('pt-BR');
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: `Você é a **Lumi**, uma Wealth Manager e Concierge Financeira pessoal de alto padrão.
+A data de hoje é: ${currentDate}.
+Sua tarefa é dar as boas-vindas ao usuário e fornecer UM insight inteligente, refinado e proativo (máx 2 frases) baseado nos gastos recentes e na data.
+- **Concierge Premium**: Use linguagem requintada, elegante, chamando o cliente pelo nome.
+- **Educadora afiada / Proatividade**: Se for fim de mês, alerte sobre segurar gastos. Se o gasto em utilidades ou iFood for alto, comande de forma sutil. Se os gastos estiverem baixos, comemore o sucesso.
+- **NUNCA** mencione dados técnicos, nem JSON ou o formato dos dados.`
+                },
+                {
+                    role: "user",
+                    content: `Usuário: ${user.username}\n\nHistórico Recente:\n${summary}`
+                }
+            ],
+            model: "llama-3.8b-8192", // Modelo mais rápido para insights iniciais
+        });
+
+        const insight = completion.choices[0].message.content;
+        res.json({ insight });
+    } catch (err) {
+        console.error("Erro ao gerar insight proativo:", err);
+        res.status(500).json({ message: "Erro ao gerar insight" });
+    }
+};
+
+/**
+ * Analisa imagem de nota fiscal/recibo e extrai dados para criar transação.
+ * Usa visão computacional do Llama 3.2 90B Vision.
+ * 
+ * @param {Object} req - body: { image: URL/base64 }
+ * @param {Object} res - { success, message, data }
+ */
+const analyzeImage = async (req, res) => {
+    const { image } = req.body;
+    const userId = req.userId;
+
+    if (!image) {
+        return res.status(400).json({ message: 'Imagem não fornecida' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+        const isCreator = user.username === 'helio.vieira' || user.username === 'admin';
+        if (user.subscriptionStatus !== 'active' && !isCreator) {
+            return res.status(403).json({ message: 'Recurso exclusivo para assinantes Lumi Pro' });
+        }
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: `Você é a **Lumi**, assistente financeira. Analise a imagem de nota fiscal/recibo e extraia os dados em formato JSON válido. 
+Retorne APENAS o JSON sem texto adicional.
+Campos: description (estabelecimento), amount (valor numérico), category (categoria), date (YYYY-MM-DD ou hoje).`
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "image_url", image_url: { url: image } }
+                    ]
+                }
+            ],
+            model: "llama-3.2-90b-vision-preview",
+        });
+
+        const response = completion.choices[0].message.content;
+        
+        let data;
+        try {
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                data = JSON.parse(jsonMatch[0]);
+            } else {
+                return res.status(400).json({ message: 'Não consegui extrair dados da imagem' });
+            }
+        } catch (e) {
+            console.error('Parse error:', e, response);
+            return res.status(400).json({ message: 'Formato de resposta inválido' });
+        }
+
+        if (!data || !data.amount || data.amount <= 0) {
+            return res.status(400).json({ message: 'Não consegui identificar o valor na nota' });
+        }
+
+        data.date = data.date || new Date().toISOString().split('T')[0];
+        data.payment_method = 'Cartão de Crédito';
+        
+        await recordTransaction(userId, data);
+        
+        res.json({ 
+            success: true, 
+            message: `Transação registrada: ${data.description} - R$ ${data.amount}`,
+            data 
+        });
+
+    } catch (err) {
+        console.error('Erro ao analisar imagem:', err);
+        res.status(500).json({ message: 'Erro ao processar imagem' });
+    }
+};
+
+module.exports = { analyzeFinances, getProactiveInsight, analyzeImage };
     const userId = req.userId;
     try {
         const transactions = await Transaction.find({ user_id: userId }).sort({ date: -1 }).limit(30);

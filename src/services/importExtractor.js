@@ -1,18 +1,48 @@
+/**
+ * =============================================================================
+ * SERVIÇO DE IMPORTAÇÃO DE EXTRATOS
+ * =============================================================================
+ * Responsável por: Parsear arquivos CSV, OFX e XML de extratos bancários.
+ * Detecta duplicatas via hash para evitar importações repetidas.
+ * =============================================================================
+ */
+
 const Transaction = require('../models/Transaction');
 const { categorize } = require('./categorizer');
 
+// ==========================================
+// FUNÇÕES AUXILIARES
+// ==========================================
+
+/**
+ * Converte string de valor para número float.
+ * Tratamento de formatos brasileiros (1.234,56) e americanos (1234.56).
+ * 
+ * @param {string} value - Valor em string
+ * @returns {number} Valor numérico
+ */
 function parseAmount(value) {
     if (!value || typeof value !== 'string') return 0;
     let cleaned = value.replace(/[R$.\s]/g, '');
     if (cleaned.includes(',') && cleaned.includes('.')) {
+        // Formato brasileiro: 1.234,56 → 1234.56
         cleaned = cleaned.replace(/\.(?=\d{3})/g, '').replace(',', '.');
     } else if (cleaned.includes(',')) {
+        // Apenas vírgula: 1234,56 → 1234.56
         cleaned = cleaned.replace(',', '.');
     }
     const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;
 }
 
+/**
+ * Parseia arquivo XML do banco (formato OFX/XML brasileiro).
+ * Procura tags <transacao>, <data>, <valor>, <descricao>.
+ * 
+ * @param {string} xmlContent - Conteúdo do arquivo XML
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de transações parseadas
+ */
 async function parseXML(xmlContent, userId) {
     const transactions = [];
     const transactionsMatch = xmlContent.match(/<transacao>([\s\S]*?)<\/transacao>/g);
@@ -29,6 +59,7 @@ async function parseXML(xmlContent, userId) {
             const amount = parseAmount(amountMatch[1]);
             const description = descMatch ? descMatch[1].trim() : 'Importado';
             
+            // Hash para detecção de duplicatas
             const hash = `${userId}-${date}-${Math.abs(amount)}-${description.substring(0, 20)}`;
             transactions.push({
                 user_id: userId,
@@ -49,6 +80,14 @@ async function parseXML(xmlContent, userId) {
     return transactions;
 }
 
+/**
+ * Parseia arquivo OFX (Open Financial Exchange).
+ * Formato texto usado por muitos bancos.
+ * 
+ * @param {string} ofxContent - Conteúdo do arquivo OFX
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de transações parseadas
+ */
 async function parseOFX(ofxContent, userId) {
     const transactions = [];
     const lines = ofxContent.split('\n');
@@ -79,6 +118,7 @@ async function parseOFX(ofxContent, userId) {
                 });
             }
         } else if (inTransaction) {
+            // Extrai campos relevantes
             if (line.includes('<DTPOSTED>')) {
                 const dateStr = line.replace('<DTPOSTED>', '').trim().slice(0, 8);
                 if (dateStr.length >= 8) {
@@ -100,6 +140,14 @@ async function parseOFX(ofxContent, userId) {
     return transactions;
 }
 
+/**
+ * Parseia arquivo CSV genérico.
+ * Detecta colunas automaticamente por cabeçalhos (data, desc, valor).
+ * 
+ * @param {string} csvContent - Conteúdo do arquivo CSV
+ * @param {string} userId - ID do usuário
+ * @returns {Array} Array de transações parseadas
+ */
 async function parseCSV(csvContent, userId) {
     const transactions = [];
     const lines = csvContent.split('\n').filter(line => line.trim());
@@ -109,6 +157,7 @@ async function parseCSV(csvContent, userId) {
     const header = lines[0].toLowerCase();
     let dateIndex = 0, descIndex = 1, amountIndex = 2;
     
+    // Detecta colunas pelo cabeçalho
     const headers = header.split(/[;,]/).map(h => h.trim());
     dateIndex = headers.findIndex(h => h.includes('data') || h.includes('date'));
     descIndex = headers.findIndex(h => h.includes('desc') || h.includes('nome') || h.includes('historic'));
@@ -117,6 +166,7 @@ async function parseCSV(csvContent, userId) {
     if (amountIndex === -1) amountIndex = 2;
     if (descIndex === -1) descIndex = 1;
     
+    // Processa cada linha
     for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(/[;,]/).map(c => c.trim().replace(/"/g, ''));
         if (cols.length < 2) continue;
@@ -127,6 +177,7 @@ async function parseCSV(csvContent, userId) {
         
         if (!amount || isNaN(amount)) continue;
         
+        // Parse da data
         let date = new Date();
         if (dateStr.includes('/')) {
             const [d, m, y] = dateStr.split('/');
@@ -155,20 +206,33 @@ async function parseCSV(csvContent, userId) {
     return transactions;
 }
 
+/**
+ * Função principal: importa transações de qualquer formato.
+ * Detecta formato automaticamente e evita duplicatas.
+ * 
+ * @param {string} userId - ID do usuário
+ * @param {string} fileContent - Conteúdo do arquivo
+ * @param {string} fileType - Tipo forçado (opcional): 'csv', 'ofx', 'xml'
+ * @returns {Array} Array de transações importadas
+ */
 async function importTransactions(userId, fileContent, fileType) {
     let transactions;
     
+    // Detecção automática do formato
     if (fileType === 'xml' || fileContent.trim().startsWith('<?xml') || fileContent.includes('<extrato>')) {
         transactions = await parseXML(fileContent, userId);
     } else if (fileType === 'ofx' || fileContent.includes('<OFX>')) {
         transactions = await parseOFX(fileContent, userId);
     } else {
+        // Default: tenta CSV
         transactions = await parseCSV(fileContent, userId);
     }
     
+    // Importa cada transação (verificando duplicatas)
     const imported = [];
     for (const t of transactions) {
         try {
+            // Verifica se já existe via importHash
             const existing = await Transaction.findOne({ importHash: t.importHash });
             if (existing) continue;
             
