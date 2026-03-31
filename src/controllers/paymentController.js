@@ -138,7 +138,7 @@ async function processStripeEvent(event) {
  * @param {Object} req - userId do middleware
  * @param {Object} res - { url: string } (URL do checkout Stripe)
  */
-const createCheckoutSession = async (req, res, next) => {
+const createCheckoutSession = async (req, res) => {
     const userId = req.userId;
 
     if (!stripe) {
