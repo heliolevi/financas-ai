@@ -1126,3 +1126,31 @@ function updateSavingsChart(goal, current) {
         }
     });
 }
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/'
+            });
+            console.log('SW registered:', registration.scope);
+
+            if (TOKEN && 'Notification' in window && Notification.permission === 'default') {
+                requestNotificationPermission();
+            }
+        } catch (err) {
+            console.error('SW registration failed:', err);
+        }
+    });
+}
+
+async function requestNotificationPermission() {
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notification permission granted');
+        }
+    } catch (err) {
+        console.error('Notification permission error:', err);
+    }
+}
