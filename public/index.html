@@ -78,6 +78,31 @@
                     <span class="alert-icon">⚠️</span>
                     <p id="danger-msg">Atenção: Seus gastos estão acima da média.</p>
                 </div>
+                
+                <!-- Proactive Alerts Container -->
+                <div id="proactive-alerts" class="proactive-alerts" style="display: none;"></div>
+
+                <!-- Daily Summary Card -->
+                <div id="daily-summary-card" class="glass-card daily-summary-card" style="display: none;">
+                    <div class="summary-header">
+                        <h3>📅 Resumo de Hoje</h3>
+                        <span id="summary-date"></span>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="summary-item">
+                            <span class="label">Gasto Hoje</span>
+                            <span id="summary-today" class="value">R$ 0,00</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Mês</span>
+                            <span id="summary-month" class="value">R$ 0,00</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Orçamento</span>
+                            <span id="summary-budget" class="value">0%</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Stats Overview -->
                 <div class="stats-container">
@@ -207,7 +232,12 @@
                                 <div class="ai-msg">Olá! Sou sua assistente **Lumi**. Estou aqui para transformar sua gestão financeira em uma experiência tranquila e inteligente. Como posso ser útil?</div>
                             </div>
                             <div class="chat-input-area">
-                                <input type="text" id="ai-input" placeholder="Converse com a Lumi...">
+                                <div class="quick-add-btns">
+                                    <button type="button" class="quick-add-btn" data-quick="gasto" title="Adicionar gasto">💰</button>
+                                    <button type="button" class="quick-add-btn" data-quick="meta" title="Nova meta">🎯</button>
+                                    <button type="button" class="quick-add-btn" data-quick="resumo" title="Ver resumo">📊</button>
+                                </div>
+                                <input type="text" id="ai-input" placeholder="Converse com a Lumi ou use comandos...">
                                 <button id="send-btn" aria-label="Enviar mensagem para Lumi">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                                 </button>

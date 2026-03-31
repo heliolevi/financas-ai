@@ -345,6 +345,8 @@ navDashboard.addEventListener('click', () => {
     navDashboard.classList.add('active');
     navProfile.classList.remove('active');
     navGoals.classList.remove('active');
+    loadDashboardStats();
+    loadDailySummary();
 });
 
 navProfile.addEventListener('click', () => {
@@ -562,8 +564,52 @@ async function loadDashboardData() {
             dangerMsg.innerText = data.alerts[0].message;
             dangerZone.classList.add(data.alerts[0].type === 'danger' ? 'active' : '');
         }
+
+        loadProactiveAlerts();
     } catch (e) {
         console.error('Erro ao carregar dados do dashboard:', e);
+    }
+}
+
+async function loadProactiveAlerts() {
+    try {
+        const res = await fetch(API_URL + '/profile/alerts', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const alerts = await res.json();
+        
+        const container = document.getElementById('proactive-alerts');
+        if (!container) return;
+        
+        if (alerts.length > 0) {
+            container.innerHTML = alerts.map(alert => `
+                <div class="proactive-alert ${alert.type}" data-action="${alert.action}">
+                    <div class="alert-icon">
+                        ${alert.type === 'danger' ? '🚨' : alert.type === 'warning' ? '⚠️' : alert.type === 'success' ? '🎉' : 'ℹ️'}
+                    </div>
+                    <div class="alert-content">
+                        <strong>${alert.title}</strong>
+                        <span>${alert.message}</span>
+                    </div>
+                </div>
+            `).join('');
+            container.style.display = 'block';
+            
+            container.querySelectorAll('.proactive-alert').forEach(el => {
+                el.addEventListener('click', () => {
+                    const action = el.dataset.action;
+                    if (action === 'view_card') {
+                        document.getElementById('nav-profile')?.click();
+                    } else if (action === 'view_budget') {
+                        document.getElementById('nav-profile')?.click();
+                    }
+                });
+            });
+        } else {
+            container.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Erro ao carregar alertas proativos:', e);
     }
 }
 
@@ -888,6 +934,33 @@ async function loadDashboardStats() {
     }
 }
 
+async function loadDailySummary() {
+    try {
+        const res = await fetch(API_URL + '/transactions/daily-summary', {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
+        
+        const card = document.getElementById('daily-summary-card');
+        if (!card || !data.totalSpent) {
+            if (card) card.style.display = 'none';
+            return;
+        }
+        
+        document.getElementById('summary-date').innerText = data.date;
+        document.getElementById('summary-today').innerText = `R$ ${data.todaySpent.toFixed(2)}`;
+        document.getElementById('summary-month').innerText = `R$ ${data.totalWithFixed.toFixed(2)}`;
+        
+        const budgetEl = document.getElementById('summary-budget');
+        budgetEl.innerText = `${data.budgetUsed.toFixed(0)}%`;
+        budgetEl.className = `value ${data.status === 'exceeded' ? 'danger' : data.status === 'warning' ? 'warning' : ''}`;
+        
+        card.style.display = 'block';
+    } catch (err) {
+        console.error('Erro ao carregar resumo diário:', err);
+    }
+}
+
 /**
  * Função global para apagar transação (chamada pelos botões na lista).
  */
@@ -932,6 +1005,21 @@ window.deleteTransaction = async (id) => {
 
 sendBtn.addEventListener('click', sendMessage);
 aiInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+document.querySelectorAll('.quick-add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const action = btn.dataset.quick;
+        if (action === 'gasto') {
+            document.getElementById('nav-dashboard')?.click();
+            setTimeout(() => document.getElementById('t-amount')?.focus(), 300);
+        } else if (action === 'meta') {
+            document.getElementById('nav-goals')?.click();
+        } else if (action === 'resumo') {
+            aiInput.value = 'Me dá um resumo das minhas finanças';
+            sendMessage();
+        }
+    });
+});
 
 async function sendMessage() {
     const text = aiInput.value.trim();
