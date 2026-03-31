@@ -138,7 +138,7 @@ async function processStripeEvent(event) {
  * @param {Object} req - userId do middleware
  * @param {Object} res - { url: string } (URL do checkout Stripe)
  */
-const createCheckoutSession = async (req, res) => {
+const createCheckoutSession = async (req, res, next) => {
     const userId = req.userId;
 
     if (!stripe) {
@@ -172,8 +172,8 @@ const createCheckoutSession = async (req, res) => {
                 },
             ],
             mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL}/index.html?payment=success`,
-            cancel_url: `${process.env.FRONTEND_URL}/index.html?payment=cancel`,
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/index.html?payment=success`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/index.html?payment=cancel`,
         });
 
         res.json({ url: session.url });
