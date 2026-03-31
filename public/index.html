@@ -10,7 +10,7 @@
     <title>Lumi Gold - Seu Assistente Financeiro Pessoal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="assets/lumi-avatar.png">
@@ -51,388 +51,351 @@
 
         <!-- Dashboard Section -->
         <section id="dashboard-section">
-            <header>
-                <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
-                <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menu">
-                    <span></span><span></span><span></span>
-                </button>
-                <div class="header-nav" id="header-nav">
-                    <button id="nav-dashboard" class="nav-btn active">Dashboard</button>
-                    <button id="nav-analytics" class="nav-btn">📈</button>
-                    <button id="nav-profile" class="nav-btn">Perfil</button>
-                    <button id="nav-goals" class="nav-btn">🎯</button>
+            <!-- Top Bar -->
+            <header class="main-header">
+                <div class="header-left">
+                    <button id="mobile-menu-btn" class="icon-btn" aria-label="Menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="logo">Lumi <span class="gradient-text">Gold</span></div>
                 </div>
-                <div class="user-info">
-                    <div class="user-badge">
-                        <span id="user-display">Usuário</span>
-                        <span class="pro-badge" style="background: var(--text-dim);">FREE</span>
-                    </div>
-                    <button id="upgrade-btn" class="pro-btn" style="display: none;">Upgrade</button>
-                    <button id="logout-btn" class="logout-btn-mobile">Sair</button>
+                <div class="header-right">
+                    <button id="upgrade-btn" class="pro-btn" style="display: none;">⭐ Pro</button>
+                    <div class="user-avatar" id="user-avatar">U</div>
                 </div>
             </header>
 
-            <main id="main-dashboard" class="active">
-                <!-- Alerts Area -->
-                <div id="danger-zone" class="danger-alert">
-                    <span class="alert-icon">⚠️</span>
-                    <p id="danger-msg">Atenção: Seus gastos estão acima da média.</p>
-                </div>
-                
-                <!-- Proactive Alerts Container -->
-                <div id="proactive-alerts" class="proactive-alerts" style="display: none;"></div>
+            <div class="main-layout">
+                <!-- Sidebar Navigation (Desktop) -->
+                <aside class="sidebar" id="sidebar">
+                    <nav class="sidebar-nav">
+                        <button id="nav-dashboard" class="nav-item active">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-label">Início</span>
+                        </button>
+                        <button id="nav-transactions" class="nav-item">
+                            <span class="nav-icon">💳</span>
+                            <span class="nav-label">Gastos</span>
+                        </button>
+                        <button id="nav-profile" class="nav-item">
+                            <span class="nav-icon">👤</span>
+                            <span class="nav-label">Perfil</span>
+                        </button>
+                        <button id="nav-goals" class="nav-item">
+                            <span class="nav-icon">🎯</span>
+                            <span class="nav-label">Metas</span>
+                        </button>
+                        <button id="nav-analytics" class="nav-item">
+                            <span class="nav-icon">📈</span>
+                            <span class="nav-label">Análise</span>
+                        </button>
+                        <div class="nav-divider"></div>
+                        <button id="logout-btn" class="nav-item logout">
+                            <span class="nav-icon">🚪</span>
+                            <span class="nav-label">Sair</span>
+                        </button>
+                    </nav>
+                </aside>
 
-                <!-- Daily Summary Card -->
-                <div id="daily-summary-card" class="glass-card daily-summary-card" style="display: none;">
-                    <div class="summary-header">
-                        <h3>📅 Resumo de Hoje</h3>
-                        <span id="summary-date"></span>
-                    </div>
-                    <div class="summary-stats">
-                        <div class="summary-item">
-                            <span class="label">Gasto Hoje</span>
-                            <span id="summary-today" class="value">R$ 0,00</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="label">Mês</span>
-                            <span id="summary-month" class="value">R$ 0,00</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="label">Orçamento</span>
-                            <span id="summary-budget" class="value">0%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stats Overview -->
-                <div class="stats-container">
-                    <div class="glass-card stat-card">
-                        <h3>Gasto Total</h3>
-                        <div id="stat-total" class="stat-value">R$ 0,00</div>
-                    </div>
-                    <div class="glass-card stat-card">
-                        <h3>Foco do Mês</h3>
-                        <div id="stat-top-cat" class="stat-value">-</div>
-                    </div>
-                    <div class="glass-card stat-card">
-                        <h3>Limite de Crédito</h3>
-                        <div id="stat-credit-pct" class="stat-value">0%</div>
-                    </div>
-                </div>
-
-                <!-- Enhanced Features -->
-                <div id="pro-features-bar" class="pro-features-bar" style="display: none;">
-                    <h3>Gerenciamento Avançado 💎</h3>
-                    <div class="report-btns">
-                        <button id="export-pdf-btn" class="secondary-btn">📄 Exportar PDF</button>
-                        <button id="export-excel-btn" class="secondary-btn">📊 Exportar Excel</button>
-                    </div>
-                </div>
-
-                <div class="dashboard-grid">
-                    <!-- Data & Controls -->
-                    <div class="left-panel">
-                        <div class="glass-card entry-card">
-                            <h2>Novo Registro</h2>
-                            <form id="transaction-form">
-                                <div class="input-row">
-                                    <div class="input-group">
-                                        <label>Valor (R$)</label>
-                                        <input type="number" id="t-amount" placeholder="0.00" step="0.01" min="0.01" required>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Data</label>
-                                        <input type="date" id="t-date" required>
-                                    </div>
-                                </div>
-                                <div class="input-row">
-                                    <div class="input-group">
-                                        <label>Categoria</label>
-                                        <select id="t-category" required>
-                                            <option value="Alimentação">Alimentação</option>
-                                            <option value="Transporte">Transporte</option>
-                                            <option value="Lazer">Lazer</option>
-                                            <option value="Moradia">Moradia</option>
-                                            <option value="Saúde">Saúde</option>
-                                            <option value="Educação">Educação</option>
-                                            <option value="Outros">Outros</option>
-                                        </select>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Pagamento</label>
-                                        <select id="t-payment" required>
-                                            <option value="Dinheiro">Dinheiro</option>
-                                            <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                            <option value="Cartão de Débito">Cartão de Débito</option>
-                                            <option value="Pix">Pix</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="input-group" id="t-installments-group" style="display: none;">
-                                    <label>Parcelas</label>
-                                    <input type="number" id="t-installments" value="1" min="1" max="48">
-                                </div>
-                                <div class="input-group">
-                                    <label>Descrição</label>
-                                    <input type="text" id="t-description" placeholder="Ex: Jantar em família">
-                                </div>
-                                <button type="submit" class="main-btn">Salvar Transação</button>
-                            </form>
-                        </div>
-
-                        <div class="glass-card list-card">
-                            <div class="list-header">
-                                <h2>Distribuição Mensal</h2>
+                <!-- Main Content Area -->
+                <main class="main-content">
+                    <!-- Dashboard Tab -->
+                    <div id="main-dashboard" class="tab-content active">
+                        <!-- Quick Stats Row -->
+                        <div class="quick-stats-row">
+                            <div class="mini-stat">
+                                <span class="mini-label">Hoje</span>
+                                <span class="mini-value" id="mini-today">R$ 0</span>
                             </div>
-                            <div id="category-list" class="category-stats">
-                                <!-- Bars -->
+                            <div class="mini-stat">
+                                <span class="mini-label">Mês</span>
+                                <span class="mini-value" id="mini-month">R$ 0</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-label">Orçamento</span>
+                                <span class="mini-value" id="mini-budget">0%</span>
                             </div>
                         </div>
 
-                        <div class="glass-card list-card">
-                            <div class="list-header">
-                                <h2>Histórico</h2>
-                                <div class="month-selector">
-                                    <button id="prev-month" class="mini-btn" aria-label="Militar anterior">&lt;</button>
-                                    <span id="current-month-display">Carregando...</span>
-                                    <button id="next-month" class="mini-btn" aria-label="Próximo mês">&gt;</button>
+                        <!-- Main Dashboard Grid -->
+                        <div class="dashboard-grid">
+                            <!-- Left Column: Quick Add + Stats -->
+                            <div class="dashboard-column">
+                                <!-- Quick Add Card -->
+                                <div class="glass-card quick-add-card">
+                                    <h3>💰 Adicionar Gasto</h3>
+                                    <form id="transaction-form">
+                                        <div class="quick-add-inputs">
+                                            <input type="number" id="t-amount" placeholder="0,00" step="0.01" min="0.01" required>
+                                            <select id="t-category">
+                                                <option value="Alimentação">Alimentação</option>
+                                                <option value="Transporte">Transporte</option>
+                                                <option value="Lazer">Lazer</option>
+                                                <option value="Compras">Compras</option>
+                                                <option value="Contas">Contas</option>
+                                                <option value="Saúde">Saúde</option>
+                                                <option value="Outros">Outros</option>
+                                            </select>
+                                        </div>
+                                        <input type="text" id="t-description" placeholder="Descrição (opcional)">
+                                        <button type="submit" class="main-btn">Registrar</button>
+                                    </form>
                                 </div>
-                                <div class="total-badge">Total: <span id="total-amount">R$ 0,00</span></div>
-                            </div>
-                            <div id="transaction-list" class="scroll-area">
-                                <p class="empty-msg">Sua jornada financeira começa aqui.</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Charts & AI -->
-                    <div class="right-panel">
-                        <div class="glass-card chart-card">
-                            <h2>Gráfico de Gastos</h2>
-                            <canvas id="expensesChart"></canvas>
-                        </div>
-                        <div class="glass-card ai-card">
-                            <div class="ai-header">
-                                <div class="ai-identity">
-                                    <div class="lumi-avatar-container" id="lumi-avatar-wrapper">
-                                        <div class="lumi-glow"></div>
-                                        <img src="assets/lumi-avatar.png" alt="Lumi" class="lumi-thumb" id="lumi-avatar">
-                                        <div class="online-indicator" id="lumi-status"></div>
-                                        <div class="typing-dots" id="lumi-typing" style="display: none;">
-                                            <span></span><span></span><span></span>
+                                <!-- Alerts -->
+                                <div id="danger-zone" class="danger-alert" style="display: none;">
+                                    <span class="alert-icon">⚠️</span>
+                                    <p id="danger-msg">Atenção!</p>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Charts + Info -->
+                            <div class="dashboard-column">
+                                <!-- Chart Card -->
+                                <div class="glass-card chart-card">
+                                    <div class="chart-header">
+                                        <h3>Gastos por Categoria</h3>
+                                        <div class="month-nav">
+                                            <button id="prev-month" class="nav-arrow">‹</button>
+                                            <span id="current-month-display">Março 2026</span>
+                                            <button id="next-month" class="nav-arrow">›</button>
                                         </div>
                                     </div>
-                                    <div>
-                                        <h2>Lumi Concierge <span class="ai-badge">Gold Beta</span></h2>
-                                        <span class="ai-status">Sua inteligência financeira premium</span>
+                                    <div class="chart-container">
+                                        <canvas id="expensesChart"></canvas>
+                                    </div>
+                                    <div id="category-list" class="category-list"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Transactions (Collapsible) -->
+                        <div class="glass-card transactions-section">
+                            <div class="section-header" onclick="toggleSection('transactions-list')">
+                                <h3>📋 Últimas Transações</h3>
+                                <span class="toggle-icon">▼</span>
+                            </div>
+                            <div id="transactions-list" class="section-content">
+                                <div id="transaction-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transactions Tab -->
+                    <div id="main-transactions" class="tab-content">
+                        <div class="glass-card">
+                            <h2>💳 Meus Gastos</h2>
+                            <div class="transactions-filter">
+                                <select id="filter-month">
+                                    <option value="1">Janeiro</option>
+                                    <option value="2">Fevereiro</option>
+                                    <option value="3">Março</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Maio</option>
+                                    <option value="6">Junho</option>
+                                    <option value="7">Julho</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
+                                </select>
+                                <div id="transaction-list-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tab -->
+                    <div id="main-profile" class="tab-content">
+                        <div class="glass-card profile-card">
+                            <h2>👤 Meu Perfil</h2>
+                            <form id="profile-form">
+                                <h3>💰 Renda</h3>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Bruta (R$)</label>
+                                        <input type="number" id="p-gross-income" placeholder="0.00" step="0.01">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Líquida (R$)</label>
+                                        <input type="number" id="p-net-income" placeholder="0.00" step="0.01">
                                     </div>
                                 </div>
-                            </div>
-                            <div id="chat-messages" class="scroll-area chat-messages">
-                                <div class="ai-msg">Olá! Sou sua assistente **Lumi**. Estou aqui para transformar sua gestão financeira em uma experiência tranquila e inteligente. Como posso ser útil?</div>
-                            </div>
-                            <div class="chat-input-area">
-                                <div class="quick-add-btns">
-                                    <button type="button" class="quick-add-btn" data-quick="gasto" title="Adicionar gasto">💰</button>
-                                    <button type="button" class="quick-add-btn" data-quick="meta" title="Nova meta">🎯</button>
-                                    <button type="button" class="quick-add-btn" data-quick="resumo" title="Ver resumo">📊</button>
+                                
+                                <h3>🏦 Banco</h3>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Nome</label>
+                                        <input type="text" id="p-bank-name" placeholder="Banco...">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Saldo (R$)</label>
+                                        <input type="number" id="p-bank-balance" placeholder="0.00">
+                                    </div>
                                 </div>
-                                <input type="text" id="ai-input" placeholder="Converse com a Lumi ou use comandos...">
-                                <button id="send-btn" aria-label="Enviar mensagem para Lumi">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                </button>
+                                
+                                <h3>💳 Cartão de Crédito</h3>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Limite (R$)</label>
+                                        <input type="number" id="p-cc-limit" placeholder="0.00">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Usado (R$)</label>
+                                        <input type="number" id="p-cc-used" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Fatura (R$)</label>
+                                        <input type="number" id="p-cc-bill" placeholder="0.00">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Vencimento</label>
+                                        <input type="number" id="p-cc-due" placeholder="1-31" min="1" max="31">
+                                    </div>
+                                </div>
+                                
+                                <h3>📌 Despesas Fixas</h3>
+                                <div id="fixed-expenses-list"></div>
+                                <button type="button" id="add-fixed-expense" class="secondary-btn">+ Adicionar</button>
+                                
+                                <h3>🎯 Orçamento e Metas</h3>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Orçamento Mensal (R$)</label>
+                                        <input type="number" id="p-monthly-budget" placeholder="0.00">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Meta Economia (R$)</label>
+                                        <input type="number" id="p-savings-goal" placeholder="0.00">
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="main-btn">Salvar</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Goals Tab -->
+                    <div id="main-goals" class="tab-content">
+                        <div class="glass-card goals-card">
+                            <h2>🎯 Minhas Metas</h2>
+                            <div class="goal-progress">
+                                <div class="goal-header">
+                                    <span>Economia Mensal</span>
+                                    <span id="goal-current">R$ 0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="goal-progress-bar" style="width: 0%"></div>
+                                </div>
+                                <div class="goal-footer">
+                                    <span>Meta: R$ <span id="goal-monthly">0</span></span>
+                                    <span><span id="goal-progress">0</span>%</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Analytics Tab -->
+                    <div id="main-analytics" class="tab-content">
+                        <div class="analytics-container">
+                            <div class="glass-card analytics-card">
+                                <h2>🔮 Previsão de Gastos</h2>
+                                <div class="pred-stats">
+                                    <div class="pred-item">
+                                        <span class="pred-label">Média Mensal</span>
+                                        <span class="pred-value" id="pred-avg">R$ 0</span>
+                                    </div>
+                                    <div class="pred-item">
+                                        <span class="pred-label">Projeção Mês</span>
+                                        <span class="pred-value" id="pred-projected">R$ 0</span>
+                                    </div>
+                                    <div class="pred-item">
+                                        <span class="pred-label">Saldo Previsto</span>
+                                        <span class="pred-value" id="pred-surplus">R$ 0</span>
+                                    </div>
+                                </div>
+                                <div id="prediction-insights"></div>
+                            </div>
+
+                            <div class="glass-card analytics-card">
+                                <h2>🔄 Assinaturas Recorrentes</h2>
+                                <div id="subscriptions-list"></div>
+                                <div class="subs-summary">
+                                    <span>Mensal: <strong id="subs-total">R$ 0</strong></span>
+                                    <span>Anual: <strong id="subs-yearly">R$ 0</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="glass-card analytics-card">
+                                <h2>🏆 Conquistas</h2>
+                                <div id="achievements-grid"></div>
+                            </div>
+
+                            <div class="glass-card analytics-card">
+                                <h2>📥 Importar Extrato</h2>
+                                <p class="import-desc">Importe CSV, OFX ou XML</p>
+                                <input type="file" id="import-file" accept=".csv,.ofx,.xml">
+                                <button id="import-btn" class="main-btn">Importar</button>
+                                <div id="import-result"></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Mobile Bottom Navigation -->
+            <nav class="bottom-nav" id="bottom-nav">
+                <button class="bottom-nav-item active" data-tab="dashboard">
+                    <span class="bottom-icon">📊</span>
+                    <span>Início</span>
+                </button>
+                <button class="bottom-nav-item" data-tab="transactions">
+                    <span class="bottom-icon">💳</span>
+                    <span>Gastos</span>
+                </button>
+                <button class="bottom-nav-item" data-tab="goals">
+                    <span class="bottom-icon">🎯</span>
+                    <span>Metas</span>
+                </button>
+                <button class="bottom-nav-item" data-tab="profile">
+                    <span class="bottom-icon">👤</span>
+                    <span>Perfil</span>
+                </button>
+            </nav>
+
+            <!-- Chat Lumi -->
+            <div class="lumi-chat-wrapper">
+                <div id="lumi-avatar-wrapper" class="lumi-avatar-wrapper">
+                    <div id="lumi-avatar" class="lumi-avatar">
+                        <div class="lumi-avatar-inner">L</div>
+                    </div>
+                    <div id="lumi-status" class="lumi-status offline"></div>
+                </div>
+                <div class="lumi-chat-panel" id="lumi-chat-panel" style="display: none;">
+                    <div class="chat-header">
+                        <div class="lumi-avatar-small">L</div>
+                        <span>Lumi - Assistente</span>
+                        <button class="close-chat" onclick="toggleChat()">×</button>
+                    </div>
+                    <div id="chat-messages" class="chat-messages">
+                        <div class="ai-msg">Olá! Sou a **Lumi**. Como posso ajudar suas finanças hoje?</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="ai-input" placeholder="Converse com a Lumi...">
+                        <button id="send-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
                     </div>
                 </div>
-            </main>
-
-            <!-- Profile Section -->
-            <main id="main-profile" style="display: none;">
-                <div class="profile-container">
-                    <div class="glass-card profile-card">
-                        <h2>Meu Perfil Financeiro</h2>
-                        <form id="profile-form">
-                            <h3>Renda</h3>
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Renda Bruta (R$)</label>
-                                    <input type="number" id="p-gross-income" placeholder="0.00" step="0.01" min="0">
-                                </div>
-                                <div class="input-group">
-                                    <label>Renda Líquida (R$)</label>
-                                    <input type="number" id="p-net-income" placeholder="0.00" step="0.01" min="0">
-                                </div>
-                            </div>
-                            <h3>Banco</h3>
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Nome do Banco</label>
-                                    <input type="text" id="p-bank-name" placeholder="Nubank, Itaú, etc.">
-                                </div>
-                                <div class="input-group">
-                                    <label>Saldo Atual (R$)</label>
-                                    <input type="number" id="p-bank-balance" placeholder="0.00" step="0.01">
-                                </div>
-                            </div>
-                            <h3>Cartão de Crédito</h3>
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Limite Total (R$)</label>
-                                    <input type="number" id="p-cc-limit" placeholder="0.00" step="0.01">
-                                </div>
-                                <div class="input-group">
-                                    <label>Valor Usado (R$)</label>
-                                    <input type="number" id="p-cc-used" placeholder="0.00" step="0.01">
-                                </div>
-                            </div>
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Fatura Atual (R$)</label>
-                                    <input type="number" id="p-cc-bill" placeholder="0.00" step="0.01">
-                                </div>
-                                <div class="input-group">
-                                    <label>Dia de Vencimento</label>
-                                    <input type="number" id="p-cc-due" placeholder="1-31" min="1" max="31">
-                                </div>
-                            </div>
-                            <h3>Despesas Fixas</h3>
-                            <div id="fixed-expenses-list"></div>
-                            <button type="button" id="add-fixed-expense" class="secondary-btn">+ Adicionar Despesa Fixa</button>
-                            <h3>Orçamento e Metas</h3>
-                            <div class="input-row">
-                                <div class="input-group">
-                                    <label>Orçamento Mensal (R$)</label>
-                                    <input type="number" id="p-monthly-budget" placeholder="0.00" step="0.01">
-                                </div>
-                                <div class="input-group">
-                                    <label>Meta de Economia (R$)</label>
-                                    <input type="number" id="p-savings-goal" placeholder="0.00" step="0.01">
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>Economia Atual (R$)</label>
-                                <input type="number" id="p-savings-current" placeholder="0.00" step="0.01">
-                            </div>
-                            <button type="submit" class="main-btn">Salvar Perfil</button>
-                        </form>
-                    </div>
-                </div>
-            </main>
-
-            <!-- Goals Section -->
-            <main id="main-goals" style="display: none;">
-                <div class="goals-container">
-                    <div class="glass-card goal-card">
-                        <h2>Metas de Economia</h2>
-                        <div class="goal-progress">
-                            <canvas id="savingsChart"></canvas>
-                        </div>
-                        <div class="goal-stats">
-                            <div class="goal-stat">
-                                <span class="goal-label">Meta Mensal</span>
-                                <span id="goal-monthly" class="goal-value">R$ 0,00</span>
-                            </div>
-                            <div class="goal-stat">
-                                <span class="goal-label">Atual</span>
-                                <span id="goal-current" class="goal-value">R$ 0,00</span>
-                            </div>
-                            <div class="goal-stat">
-                                <span class="goal-label">Progresso</span>
-                                <span id="goal-progress" class="goal-value">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="glass-card goal-card">
-                        <h2>Indicadores Financeiros</h2>
-                        <div class="indicators">
-                            <div class="indicator">
-                                <span class="indicator-label">Comprometimento de Renda</span>
-                                <div class="indicator-bar">
-                                    <div id="indicator-commitment" class="indicator-fill" style="width: 0%"></div>
-                                </div>
-                                <span id="indicator-commitment-val" class="indicator-val">0%</span>
-                            </div>
-                            <div class="indicator">
-                                <span class="indicator-label">Uso do Cartão</span>
-                                <div class="indicator-bar">
-                                    <div id="indicator-credit" class="indicator-fill" style="width: 0%"></div>
-                                </div>
-                                <span id="indicator-credit-val" class="indicator-val">0%</span>
-                            </div>
-                            <div class="indicator">
-                                <span class="indicator-label">Orçamento Usado</span>
-                                <div class="indicator-bar">
-                                    <div id="indicator-budget" class="indicator-fill" style="width: 0%"></div>
-                                </div>
-                                <span id="indicator-budget-val" class="indicator-val">0%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <!-- Analytics Section -->
-            <main id="main-analytics" style="display: none;">
-                <div class="analytics-container">
-                    <div class="glass-card analytics-card">
-                        <h2>📊 Previsão de Gastos</h2>
-                        <div id="prediction-content">
-                            <div class="pred-stat">
-                                <span class="pred-label">Gasto Médio Mensal</span>
-                                <span id="pred-avg" class="pred-value">R$ 0,00</span>
-                            </div>
-                            <div class="pred-stat">
-                                <span class="pred-label">Projetado Mês Atual</span>
-                                <span id="pred-projected" class="pred-value">R$ 0,00</span>
-                            </div>
-                            <div class="pred-stat">
-                                <span class="pred-label">Fixo + Variável</span>
-                                <span id="pred-total" class="pred-value">R$ 0,00</span>
-                            </div>
-                            <div class="pred-stat">
-                                <span class="pred-label">Sobra/Falta</span>
-                                <span id="pred-surplus" class="pred-value">R$ 0,00</span>
-                            </div>
-                        </div>
-                        <div id="prediction-insights"></div>
-                        <button id="refresh-prediction" class="secondary-btn">🔄 Atualizar Previsão</button>
-                    </div>
-
-                    <div class="glass-card analytics-card">
-                        <h2>🔄 Assinaturas Recorrentes</h2>
-                        <div id="subscriptions-list"></div>
-                        <div class="subs-summary">
-                            <span>Total mensal: <strong id="subs-total">R$ 0,00</strong></span>
-                            <span>Ano: <strong id="subs-yearly">R$ 0,00</strong></span>
-                        </div>
-                    </div>
-
-                    <div class="glass-card analytics-card">
-                        <h2>🏆 Minhas Conquistas</h2>
-                        <div class="achievements-progress">
-                            <div class="achievement-badge unlocked" id="achievement-badge">0%</div>
-                            <div class="achievement-info">
-                                <span id="achievement-count">0 de 0 conquistas</span>
-                                <div class="achievement-bar">
-                                    <div id="achievement-fill" class="achievement-fill" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="achievements-grid"></div>
-                    </div>
-
-                    <div class="glass-card analytics-card">
-                        <h2>📥 Importar Extrato</h2>
-                        <p class="import-desc">Importe seu extrato bancário em CSV ou OFX para registrar automaticamente</p>
-                        <input type="file" id="import-file" accept=".csv,.ofx,.xml" class="import-input">
-                        <button id="import-btn" class="main-btn">Importar Transações</button>
-                        <div id="import-result"></div>
-                    </div>
-                </div>
-            </main>
+            </div>
         </section>
     </div>
+
+    <!-- Overlay for mobile menu -->
+    <div class="overlay" id="overlay" style="display: none;"></div>
+    
     <script src="script.js"></script>
 </body>
 </html>

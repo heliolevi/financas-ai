@@ -330,82 +330,73 @@ function showDashboard() {
 const mobileMenuBtn = document.getElementById('mobile-menu-btn');
 const headerNav = document.getElementById('header-nav');
 
+// Tab navigation system
+const tabs = ['dashboard', 'transactions', 'profile', 'goals', 'analytics'];
+
+function switchTab(tabName) {
+    tabs.forEach(t => {
+        const mainEl = document.getElementById(`main-${t}`);
+        if (mainEl) mainEl.classList.remove('active');
+        
+        const sidebarBtn = document.querySelector(`#nav-${t}`);
+        if (sidebarBtn) sidebarBtn.classList.remove('active');
+        
+        const bottomBtn = document.querySelector(`.bottom-nav-item[data-tab="${t}"]`);
+        if (bottomBtn) bottomBtn.classList.remove('active');
+    });
+    
+    const activeMain = document.getElementById(`main-${tabName}`);
+    if (activeMain) activeMain.classList.add('active');
+    
+    const activeSidebar = document.querySelector(`#nav-${tabName}`);
+    if (activeSidebar) activeSidebar.classList.add('active');
+    
+    const activeBottom = document.querySelector(`.bottom-nav-item[data-tab="${tabName}"]`);
+    if (activeBottom) activeBottom.classList.add('active');
+    
+    if (tabName === 'dashboard') {
+        loadDashboardStats();
+        loadDailySummary();
+    } else if (tabName === 'profile') {
+        loadProfile();
+    } else if (tabName === 'goals') {
+        loadGoals();
+    } else if (tabName === 'analytics') {
+        loadAnalytics();
+    }
+}
+
+// Sidebar navigation
+document.getElementById('nav-dashboard')?.addEventListener('click', () => switchTab('dashboard'));
+document.getElementById('nav-transactions')?.addEventListener('click', () => switchTab('transactions'));
+document.getElementById('nav-profile')?.addEventListener('click', () => switchTab('profile'));
+document.getElementById('nav-goals')?.addEventListener('click', () => switchTab('goals'));
+document.getElementById('nav-analytics')?.addEventListener('click', () => switchTab('analytics'));
+
+// Bottom navigation (mobile)
+document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+        switchTab(btn.dataset.tab);
+    });
+});
+
 if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', () => {
-        headerNav.classList.toggle('active');
-        mobileMenuBtn.classList.toggle('active');
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.toggle('active');
     });
 }
 
-// Close mobile menu when clicking outside
-document.addEventListener('click', (e) => {
-    if (headerNav && mobileMenuBtn) {
-        if (!headerNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-            headerNav.classList.remove('active');
-            mobileMenuBtn.classList.remove('active');
-        }
-    }
+// Logout
+logoutBtn.addEventListener('click', () => {
+    TOKEN = null;
+    USERNAME = null;
+    localStorage.clear();
+    authSection.classList.add('active');
+    dashboardSection.classList.remove('active');
 });
 
-// Close mobile menu on navigation
-function closeMobileMenu() {
-    if (headerNav && mobileMenuBtn) {
-        headerNav.classList.remove('active');
-        mobileMenuBtn.classList.remove('active');
-    }
-}
-
-// Navigation
-navDashboard.addEventListener('click', () => {
-    closeMobileMenu();
-    mainDashboard.style.display = 'block';
-    mainProfile.style.display = 'none';
-    mainGoals.style.display = 'none';
-    navDashboard.classList.add('active');
-    navProfile.classList.remove('active');
-    navGoals.classList.remove('active');
-    loadDashboardStats();
-    loadDailySummary();
-});
-
-navProfile.addEventListener('click', () => {
-    closeMobileMenu();
-    mainDashboard.style.display = 'none';
-    mainProfile.style.display = 'block';
-    mainGoals.style.display = 'none';
-    navDashboard.classList.remove('active');
-    navProfile.classList.add('active');
-    navGoals.classList.remove('active');
-    loadProfile();
-});
-
-navGoals.addEventListener('click', () => {
-    closeMobileMenu();
-    mainDashboard.style.display = 'none';
-    mainProfile.style.display = 'none';
-    mainGoals.style.display = 'block';
-    mainAnalytics.style.display = 'none';
-    navDashboard.classList.remove('active');
-    navProfile.classList.remove('active');
-    navGoals.classList.add('active');
-    navAnalytics.classList.remove('active');
-    loadGoals();
-});
-
-if (navAnalytics) {
-    navAnalytics.addEventListener('click', () => {
-        closeMobileMenu();
-        mainDashboard.style.display = 'none';
-        mainProfile.style.display = 'none';
-        mainGoals.style.display = 'none';
-        mainAnalytics.style.display = 'block';
-        navDashboard.classList.remove('active');
-        navProfile.classList.remove('active');
-        navGoals.classList.remove('active');
-        navAnalytics.classList.add('active');
-        loadAnalytics();
-    });
-}
+/* // Old navigation code commented out
 
 async function loadProfile() {
     try {
