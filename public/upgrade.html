@@ -9,8 +9,8 @@
     <style>
         :root {
             --surreal-bg: #090b14;
-            --surreal-g1: rgba(217, 119, 6, 0.15); /* Gold */
-            --surreal-g2: rgba(79, 70, 229, 0.15); /* Violet/Indigo */
+            --surreal-g1: rgba(217, 119, 6, 0.15);
+            --surreal-g2: rgba(79, 70, 229, 0.15);
             --glass-bg: rgba(255, 255, 255, 0.02);
             --glass-border: rgba(255, 255, 255, 0.08);
             --accent-gold-solid: #fbbf24;
@@ -33,7 +33,6 @@
             overflow-x: hidden;
         }
 
-        /* Fundo Mágico "Surreal" */
         body::before, body::after {
             content: '';
             position: absolute;
@@ -44,15 +43,8 @@
             z-index: -1;
             animation: orbFloat 20s infinite alternate ease-in-out;
         }
-        body::before {
-            background: var(--surreal-g1);
-            top: -10%; left: -10%;
-        }
-        body::after {
-            background: var(--surreal-g2);
-            bottom: -20%; right: -10%;
-            animation-delay: -5s;
-        }
+        body::before { background: var(--surreal-g1); top: -10%; left: -10%; }
+        body::after { background: var(--surreal-g2); bottom: -20%; right: -10%; animation-delay: -5s; }
 
         @keyframes orbFloat {
             0% { transform: translate(0, 0) scale(1); }
@@ -60,7 +52,7 @@
         }
 
         .upgrade-container {
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             text-align: center;
             animation: containerEnter 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -73,15 +65,7 @@
             to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
 
-        /* Topografia Premium */
-        .hero-title {
-            font-size: 4.5rem;
-            font-weight: 900;
-            margin-bottom: 1.5rem;
-            line-height: 1.05;
-            letter-spacing: -2.5px;
-            text-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
+        .hero-title { font-size: 4rem; font-weight: 900; margin-bottom: 1rem; line-height: 1.1; letter-spacing: -2px; text-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .gradient-text {
             background: linear-gradient(to right, #fbbf24, #f59e0b, #d97706);
             -webkit-background-clip: text;
@@ -91,23 +75,27 @@
             filter: drop-shadow(0 2px 15px rgba(217, 119, 6, 0.4));
         }
 
-        .hero-subtitle {
-            font-size: 1.3rem;
-            color: #cbd5e1;
-            margin-bottom: 4rem;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-            font-weight: 300;
-        }
+        .hero-subtitle { font-size: 1.4rem; color: #cbd5e1; margin-bottom: 3rem; max-width: 700px; margin-left: auto; margin-right: auto; line-height: 1.6; font-weight: 300; }
 
-        /* Cards Mágicos 3D */
+        /* Seção de Problema/Solução */
+        .problem-solution {
+            background: linear-gradient(135deg, rgba(217,119,6,0.1), rgba(79,70,229,0.1));
+            border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 2rem;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            text-align: left;
+        }
+        .problem-solution h2 { color: var(--accent-gold-solid); margin-top: 0; font-size: 1.8rem; }
+        .problem-solution ul { color: var(--text-dim); font-size: 1.1rem; line-height: 2; margin: 0; padding-left: 1.5rem; }
+        .problem-solution li::marker { color: var(--accent-gold-solid); }
+
+        /* Grid de Recursos */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-bottom: 5rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4rem;
         }
 
         .feature-card {
@@ -115,8 +103,8 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
-            padding: 2.5rem;
-            border-radius: 2rem;
+            padding: 2rem;
+            border-radius: 1.5rem;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
@@ -125,142 +113,110 @@
         }
 
         .feature-card:hover {
-            transform: translateY(-12px) scale(1.02);
+            transform: translateY(-8px) scale(1.02);
             background: rgba(255, 255, 255, 0.05);
             border-color: rgba(251, 191, 36, 0.4);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 40px rgba(217, 119, 6, 0.1);
         }
 
-        .feature-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1.5rem;
-            display: inline-block;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
-        }
-
-        .feature-card h3 {
-            font-size: 1.6rem;
-            margin-bottom: 1rem;
-            color: #fff;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-        
-        .feature-card p {
-            color: var(--text-dim);
-            font-size: 1.05rem;
-            line-height: 1.5;
-        }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; display: inline-block; }
+        .feature-card h3 { font-size: 1.4rem; margin-bottom: 0.8rem; color: #fff; font-weight: 600; }
+        .feature-card p { color: var(--text-dim); font-size: 1rem; line-height: 1.5; margin: 0; }
 
         .lumi-glow {
-            position: absolute;
-            top: -60px;
-            right: -60px;
-            width: 180px;
-            height: 180px;
+            position: absolute; top: -40px; right: -40px;
+            width: 120px; height: 120px;
             background: radial-gradient(circle, rgba(251, 191, 36, 0.25), transparent 70%);
-            transition: all 0.5s ease;
-        }
-        .feature-card:hover .lumi-glow {
-            transform: scale(1.5);
-            background: radial-gradient(circle, rgba(251, 191, 36, 0.4), transparent 70%);
         }
 
-        /* Gatilhos de Alta Conversão na Área de Pagamento */
+        /* Seção de Valor */
+        .value-section {
+            background: linear-gradient(180deg, rgba(251,191,36,0.05), transparent);
+            border-top: 1px solid rgba(251,191,36,0.2);
+            border-bottom: 1px solid rgba(251,191,36,0.2);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            border-radius: 1.5rem;
+        }
+        .value-section h2 { color: var(--accent-gold-solid); margin-top: 0; font-size: 1.6rem; }
+        .value-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .value-item { display: flex; align-items: center; gap: 0.8rem; }
+        .value-item span { font-size: 1.5rem; }
+        .value-item strong { color: #fff; font-weight: 500; }
+
+        /* Pricing Section */
         .pricing-section {
             background: rgba(255, 255, 255, 0.02);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border: 1px solid rgba(251, 191, 36, 0.3);
-            padding: 4rem;
-            border-radius: 3rem;
+            padding: 3rem;
+            border-radius: 2.5rem;
             display: inline-block;
             width: 100%;
             max-width: 500px;
             box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 0 20px rgba(217, 119, 6, 0.05);
             position: relative;
-            z-index: 2;
-        }
-
-        .pricing-section::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: inherit;
-            background: linear-gradient(180deg, rgba(251, 191, 36, 0.5), transparent);
-            z-index: -1;
-            opacity: 0.5;
         }
 
         .badge {
             background: var(--accent-gold);
             color: #000;
             font-weight: 800;
-            padding: 0.5rem 1.2rem;
+            padding: 0.6rem 1.5rem;
             border-radius: 2rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             display: inline-block;
-            box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
         }
 
         .strike-price {
             text-decoration: line-through;
             color: #ef4444; 
-            font-size: 1.3rem;
-            margin-bottom: -1.5rem; 
+            font-size: 1.4rem;
+            margin-top: 1.5rem;
             display: block;
-            text-align: center;
             font-weight: 600;
             opacity: 0.8;
-            position: relative;
-            z-index: 2;
         }
 
         .price {
-            font-size: 6rem;
+            font-size: 5.5rem;
             font-weight: 900;
-            margin: 1.5rem 0 1rem;
+            margin: 0.5rem 0;
             color: #ffffff;
-            letter-spacing: -4px;
+            letter-spacing: -3px;
             text-shadow: 0 0 40px rgba(251, 191, 36, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.2rem;
         }
+        .price span { font-size: 1.2rem; color: var(--accent-gold-solid); font-weight: 600; align-self: flex-end; margin-bottom: 1rem; margin-left: 0.3rem; }
 
-        .price span {
-            font-size: 1.2rem;
-            color: var(--accent-gold-solid);
-            font-weight: 600;
-            letter-spacing: 0;
-            align-self: flex-end;
-            margin-bottom: 1.5rem;
+        .price-comparison {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 1rem;
+            padding: 1.2rem;
+            margin: 1.5rem 0;
         }
+        .price-comparison p { margin: 0; color: #10b981; font-weight: 600; font-size: 1.1rem; }
 
-        /* Botão Magnético Luminous */
         .subscribe-btn {
             background: var(--accent-gold);
             color: #000;
             width: 100%;
-            padding: 1.4rem;
-            font-size: 1.3rem;
+            padding: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 900;
-            border-radius: 1.5rem;
+            border-radius: 1.2rem;
             border: none;
-            margin-top: 2.5rem;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 15px 35px rgba(217, 119, 6, 0.4);
-            position: relative;
-            overflow: hidden;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-
-        /* Efeito de Reflexo Sweep */
         .subscribe-btn::after {
             content: '';
             position: absolute;
@@ -270,130 +226,124 @@
             transform: skewX(-25deg);
             animation: shineSweep 4s infinite;
         }
-
         @keyframes shineSweep {
             0%, 20% { left: -150%; opacity: 0; }
             30% { left: 200%; opacity: 1; }
             100% { left: 200%; opacity: 0; }
         }
-
-        .subscribe-btn:hover {
-            transform: scale(1.04) translateY(-2px);
-            box-shadow: 0 20px 50px rgba(217, 119, 6, 0.6);
-            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-        }
+        .subscribe-btn:hover { transform: scale(1.03); box-shadow: 0 20px 50px rgba(217, 119, 6, 0.6); }
         .subscribe-btn:active { transform: scale(0.98); }
 
-        .scarcity-badge {
-            background: rgba(239, 68, 68, 0.15);
-            color: #fca5a5;
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            padding: 0.8rem 2rem;
-            border-radius: 3rem;
-            font-size: 1.1rem;
-            font-weight: 700;
-            display: inline-block;
-            margin-bottom: 2.5rem;
-            animation: critical-pulse 2s infinite;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        @keyframes critical-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); transform: scale(1); }
-            50% { transform: scale(1.03); }
-            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); transform: scale(1); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
-        }
-
-        .guarantee {
-            margin-top: 1.5rem;
-            font-size: 0.95rem;
-            color: #94a3b8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            font-weight: 500;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-top: 3rem;
-            color: var(--text-dim);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            padding: 0.8rem 1.5rem;
-            border-radius: 1rem;
-        }
-
-        .back-link:hover { 
-            color: var(--text-primary); 
-            background: rgba(255,255,255,0.05);
-            transform: translateY(-2px);
-        }
+        .guarantee { margin-top: 1.5rem; font-size: 0.95rem; color: #94a3b8; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .back-link { display: inline-block; margin-top: 2.5rem; color: var(--text-dim); text-decoration: none; font-weight: 600; font-size: 1rem; transition: all 0.3s ease; padding: 0.8rem 1.5rem; border-radius: 1rem; }
+        .back-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
 
         @media (max-width: 768px) {
             body { padding: 1.5rem 1rem; }
-            .hero-title { font-size: 2.8rem; letter-spacing: -1px; }
-            .hero-subtitle { font-size: 1.1rem; margin-bottom: 3rem; }
-            .pricing-section { padding: 2.5rem 1.5rem; border-radius: 2rem; }
-            .price { font-size: 4rem; letter-spacing: -2px; }
-            .feature-card { padding: 2rem; text-align: center; } 
+            .hero-title { font-size: 2.5rem; }
+            .hero-subtitle { font-size: 1.1rem; }
+            .pricing-section { padding: 2rem 1.5rem; }
+            .price { font-size: 3.5rem; }
+            .features-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="upgrade-container">
-        <div class="scarcity-badge">🔥 Oferta de Lançamento: Vagas Limitadas</div>
-        <h1 class="hero-title">O fim da ansiedade com seu dinheiro <br><span class="gradient-text">Máximo Controle.</span></h1>
-        <p class="hero-subtitle">Junte-se a pessoas que já multiplicaram sua renda. Eleve sua experiência financeira com nossa IA exclusiva que age como o seu Diretor Financeiro pessoal.</p>
+        <h1 class="hero-title">Deixe de ser <span style="color:#ef4444">refém</span> do dinheiro. <br><span class="gradient-text">Tome o controle.</span></h1>
+        <p class="hero-subtitle">Você trabalha duro pelo seu dinheiro. Agora deixe a IA trabalhar para você. Lumi Gold Pro é como ter um Diretor Financeiro pessoal por menos de uma mensalidade de academia.</p>
 
+        <!-- Problema e Solução -->
+        <div class="problem-solution">
+            <h2>🎯 O que você ganha com Lumi Gold Pro:</h2>
+            <ul>
+                <li><strong>IA Ilimitada:</strong> Conversa sem limites com a Lumi, sua assistente financeira pessoal 24/7</li>
+                <li><strong>Análise de Imagens:</strong> Fotografe notas fiscais e ela categoriza automaticamente</li>
+                <li><strong>Relatórios Premium:</strong> Exportação ILIMITADA de PDFs e Excel com design executivo</li>
+                <li><strong>Insights Proativos:</strong> Lumi te alerta antes que você gaste mais do que deveria</li>
+                <li><strong>Metas Inteligentes:</strong> Sistema degamificação que transforma economia em jogo</li>
+                <li><strong>Importação de Extratos:</strong> Importe automaticamente do Nubank, Itaú, Bradesco e muito mais</li>
+                <li><strong>Previsão de Gastos:</strong> AI predictiva que antecipa seus gastos futuros</li>
+                <li><strong>Suporte Prioritário:</strong> Acceso direto ao time de desenvolvimento</li>
+            </ul>
+        </div>
+
+        <!-- Grid de Features -->
         <div class="features-grid">
             <div class="feature-card">
                 <div class="lumi-glow"></div>
-                <span class="feature-icon">🤖</span>
-                <h3>Lumi Proativa</h3>
-                <p>Ela analisa seus padrões e te dá insights antes mesmo de você perguntar. Economia real e automática.</p>
+                <span class="feature-icon">🧠</span>
+                <h3>Lumi Gold Concierge</h3>
+                <p>Modelo de IA mais poderoso. Analisa investimentos, otimiza orçamento e sugere formas de economizar baseado no SEU comportamento.</p>
             </div>
             <div class="feature-card">
-                <span class="feature-icon">📊</span>
-                <h3>Relatórios Gold</h3>
-                <p>Exportação ilimitada de PDFs e Planilhas Excel com design executivo e histórico completo.</p>
+                <span class="feature-icon">📸</span>
+                <h3>Scanner Inteligente</h3>
+                <p>Fotografe qualquer nota fiscal ou boleto. Lumi extrai os dados, categoriza e registra em 2 segundos.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📈</span>
+                <h3>Relatórios Executivos</h3>
+                <p>PDFs e planilhas com visual profissional. Histórico completo, gráficos bonito, pronto para apresentar.</p>
             </div>
             <div class="feature-card">
                 <span class="feature-icon">⚡</span>
-                <h3>Lumi Gold Concierge</h3>
-                <p>Acesso prioritário ao nosso modelo de IA mais avançado, com análise profunda de investimentos e metas.</p>
+                <h3>Insights em Tempo Real</h3>
+                <p>Não espere o fim do mês para saber onde você gastou. Lumi te avisa HOJE se algo estiver errado.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <h3>Sistema de Metas gamificado</h3>
+                <p>Conquistas, badges e progresso visual. Transformar economização em um jogo viciante.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h3>Importação Automática</h3>
+                <p>Conecte seu banco e importamos automaticamente. Acabou o trabalho manual de lançar gastos.</p>
             </div>
         </div>
 
+        <!-- Seção de Valor -->
+        <div class="value-section">
+            <h2>💰 Quanto vale seu tempo?</h2>
+            <div class="value-grid">
+                <div class="value-item"><span>⏱️</span><strong>5h/mês</strong> economizadas em organização</div>
+                <div class="value-item"><span>💵</span><strong>R$ 200+</strong> economizados por alertas precoces</div>
+                <div class="value-item"><span>🧠</span><strong>Inteligência</strong> que aprende seu padrão</div>
+                <div class="value-item"><span>🔒</span><strong>Segurança</strong> de dados bancários</div>
+            </div>
+        </div>
+
+        <!-- Pricing -->
         <div class="pricing-section">
             <span class="badge">Plano Lumi Gold Pro</span>
-            <div style="margin-top: 1.5rem">
-                <span class="strike-price">De R$ 99,90/mês por apenas:</span>
-                <div class="price">R$ 20<span>,00/mês</span></div>
+            <div>
+                <span class="strike-price">De R$ 99,90 por apenas:</span>
+                <div class="price">R$ 19<span>,90/mês</span></div>
             </div>
-            <p style="font-weight: 600; color: var(--accent-gold);">Uma pizza pequena custa mais que a sua independência financeira.</p>
-            <p>Tenha paz de espírito o mês inteiro por menos de R$ 0,66 ao dia.</p>
-            <button id="checkout-btn" class="subscribe-btn">EU QUERO SER PRO AGORA 🚀</button>
+            <div class="price-comparison">
+                <p>⏱️ Isso é menos que:</p>
+                <p>• 1 pizza grande (R$ 70)</p>
+                <p>• 2电影的票 (R$ 60)</p>
+                <p>• 1 mensalidade de academia (R$ 100)</p>
+            </div>
+            <p style="font-size: 1.1rem; color: #fff; font-weight: 600;">Por menos de R$ 0,66 por dia você têm:</p>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">✓ IA ilimitada ✓ Relatórios ilimitados ✓ Scanner ✓ Importação automática</p>
+            
+            <button id="checkout-btn" class="subscribe-btn">QUERO MINHA INDEPENDÊNCIA FINANCEIRA 🔥</button>
+            
             <div class="guarantee">
-                <span>🛡️</span> Risco Zero: Cancele a qualquer momento com apenas 1 clique.
+                <span>🛡️</span> Cancele quando quiser. Sem multa. Sem perguntas.
             </div>
         </div>
 
-        <a href="index.html" class="back-link">Voltar para o Dashboard</a>
+        <a href="index.html" class="back-link">← Voltar para Dashboard</a>
     </div>
 
     <script>
         document.getElementById('checkout-btn').addEventListener('click', async () => {
-            const token = localStorage.getItem('token'); // Corrigido de lumiToken para token
+            const token = localStorage.getItem('token');
             if(!token) {
-                console.error('Sessão expirada ou token não encontrado');
                 window.location.href = 'index.html';
                 return;
             }
@@ -401,23 +351,16 @@
             try {
                 const response = await fetch('/api/payments/create-checkout', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
                 if(data.url) {
                     window.location.href = data.url;
                 } else {
-                    alert('Erro ao iniciar checkout: ' + (data.message || 'Desconhecido'));
-                    if (response.status === 401 || response.status === 403) {
-                        localStorage.clear();
-                        window.location.href = 'index.html';
-                    }
+                    alert('Erro ao iniciar checkout: ' + (data.message || 'Erro desconhecido'));
                 }
             } catch (err) {
-                console.error(err);
-                alert('Erro na conexão com o servidor.');
+                alert('Erro na conexão. Tente novamente.');
             }
         });
     </script>
