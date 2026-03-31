@@ -444,7 +444,21 @@ document.querySelectorAll('.bottom-nav-item').forEach(btn => {
 if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
-        if (sidebar) sidebar.classList.toggle('active');
+        const overlay = document.getElementById('overlay');
+        if (sidebar) {
+            sidebar.classList.toggle('active');
+            if (overlay) overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+        }
+    });
+}
+
+// Overlay click to close sidebar
+const overlay = document.getElementById('overlay');
+if (overlay) {
+    overlay.addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('active');
+        overlay.style.display = 'none';
     });
 }
 
@@ -915,17 +929,18 @@ transactionForm.addEventListener('submit', async (e) => {
             loadDashboardStats();
             loadDailySummary();
             
+            showToast('Transação salva com sucesso!', 'success');
             if (tAmount) tAmount.focus();
         } else {
             const data = await res.json();
-            alert(data.message || 'Erro ao salvar transação.');
+            showToast(data.message || 'Erro ao salvar transação.', 'error');
             if (res.status === 401 || res.status === 403) {
                 localStorage.clear();
                 window.location.href = 'index.html';
             }
         }
     } catch (err) {
-        alert('Erro na conexão com o servidor.');
+        showToast('Erro na conexão com o servidor.', 'error');
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -1388,18 +1403,34 @@ async function requestNotificationPermission() {
     }
 }
 
-// Toggle Section (collapsible)
+// Toggle Section (collapsible) -Melhorado para usabilidade
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
     if (section) {
+        const isCollapsed = section.classList.contains('collapsed');
         section.classList.toggle('collapsed');
+        
+        // Rotate the icon
         const header = section.previousElementSibling;
         if (header && header.classList.contains('section-header')) {
             const icon = header.querySelector('.toggle-icon');
             if (icon) {
-                icon.classList.toggle('rotated');
+                icon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
             }
         }
     }
 }
 window.toggleSection = toggleSection;
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+window.showToast = showToast;
