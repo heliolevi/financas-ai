@@ -2,6 +2,19 @@ const API_URL = '/api';
 let TOKEN = localStorage.getItem('token');
 let USERNAME = localStorage.getItem('username');
 
+// Função para escapar HTML e prevenir XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Função segura para renderizar texto do usuário
+function safeInnerHTML(element, html) {
+    element.innerHTML = html;
+}
+
 // --- ELEMENTOS DA INTERFACE (DOM) ---
 const authSection = document.getElementById('auth-section');
 const dashboardSection = document.getElementById('dashboard-section');
@@ -86,8 +99,8 @@ async function loadPrediction() {
         insightsDiv.innerHTML = '';
         (data.insights || []).forEach(insight => {
             const div = document.createElement('div');
-            div.className = `pred-insight ${insight.type}`;
-            div.innerHTML = `<span>${insight.type === 'warning' ? '⚠️' : insight.type === 'success' ? '🎉' : 'ℹ️'}</span> ${insight.text}`;
+            div.className = `pred-insight ${escapeHtml(insight.type)}`;
+            div.innerHTML = `<span>${insight.type === 'warning' ? '⚠️' : insight.type === 'success' ? '🎉' : 'ℹ️'}</span> ${escapeHtml(insight.text)}`;
             insightsDiv.appendChild(div);
         });
     } catch (e) {
@@ -110,8 +123,8 @@ async function loadSubscriptions() {
             div.className = 'subs-item';
             div.innerHTML = `
                 <div>
-                    <div class="subs-name">${sub.name}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-dim)">${sub.category} • ${sub.frequency}</div>
+                    <div class="subs-name">${escapeHtml(sub.name)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim)">${escapeHtml(sub.category)} • ${escapeHtml(sub.frequency)}</div>
                 </div>
                 <div class="subs-amount">R$ ${sub.avgAmount.toFixed(2)}</div>
             `;
@@ -212,14 +225,16 @@ document.getElementById('import-btn')?.addEventListener('click', async () => {
             
             const data = await res.json();
             
-            document.getElementById('import-result').innerHTML = data.message || `${data.imported} transações importadas!`;
-            document.getElementById('import-result').className = 'success';
+            const importResult = document.getElementById('import-result');
+            importResult.innerHTML = escapeHtml(data.message || `${data.imported} transações importadas!`);
+            importResult.className = 'success';
             
             loadTransactions();
             loadDashboardStats();
         } catch (err) {
-            document.getElementById('import-result').innerHTML = 'Erro ao importar: ' + err.message;
-            document.getElementById('import-result').className = 'error';
+            const importResult = document.getElementById('import-result');
+            importResult.innerHTML = 'Erro ao importar: ' + escapeHtml(err.message);
+            importResult.className = 'error';
         }
     };
     reader.readAsText(file);
@@ -587,13 +602,13 @@ async function loadProactiveAlerts() {
         
         if (alerts.length > 0) {
             container.innerHTML = alerts.map(alert => `
-                <div class="proactive-alert ${alert.type}" data-action="${alert.action}">
+                <div class="proactive-alert ${escapeHtml(alert.type)}" data-action="${escapeHtml(alert.action)}">
                     <div class="alert-icon">
                         ${alert.type === 'danger' ? '🚨' : alert.type === 'warning' ? '⚠️' : alert.type === 'success' ? '🎉' : 'ℹ️'}
                     </div>
                     <div class="alert-content">
-                        <strong>${alert.title}</strong>
-                        <span>${alert.message}</span>
+                        <strong>${escapeHtml(alert.title)}</strong>
+                        <span>${escapeHtml(alert.message)}</span>
                     </div>
                 </div>
             `).join('');
@@ -857,12 +872,12 @@ async function loadTransactions() {
             item.className = 'transaction-item';
             item.innerHTML = `
                 <div class="t-info">
-                    <h4>${t.category}</h4>
-                    <span>${t.description || ''} • ${t.date} • ${t.payment_method}</span>
+                    <h4>${escapeHtml(t.category)}</h4>
+                    <span>${escapeHtml(t.description || '')} • ${escapeHtml(t.date)} • ${escapeHtml(t.payment_method)}</span>
                 </div>
                 <div class="t-details">
                     <div class="t-amount">R$ ${t.amount.toFixed(2)}</div>
-                    <button class="t-delete" onclick="deleteTransaction('${t.id}')">Apagar</button>
+                    <button class="t-delete" onclick="deleteTransaction('${escapeHtml(t.id)}')">Apagar</button>
                 </div>
             `;
             transactionList.appendChild(item);
@@ -920,7 +935,7 @@ async function loadDashboardStats() {
             row.className = 'category-row';
             row.innerHTML = `
                 <div class="category-info">
-                    <span>${cat.category}</span>
+                    <span>${escapeHtml(cat.category)}</span>
                     <span>R$ ${cat.amount.toFixed(2)} (${pct.toFixed(0)}%)</span>
                 </div>
                 <div class="progress-bg">
@@ -1123,8 +1138,8 @@ function addChatMessage(text, sender) {
     const msg = document.createElement('div');
     msg.className = sender === 'ai' ? 'ai-msg' : 'user-msg';
     
-    // Simples renderizador de Markdown para negrito e quebras de linha
-    const formattedText = text
+    const escapedText = escapeHtml(text);
+    const formattedText = escapedText
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>');
         
