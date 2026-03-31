@@ -65,6 +65,13 @@ const aiLimiter = rateLimit({
     message: { message: 'Limite de uso da IA excedido. Aguarde um momento.' }
 });
 
+// Rate limiting específico para payments/checkout (mais generoso)
+const paymentLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
+});
+
 app.use(cors());
 
 // IMPORTANTE: Rota do Webhook do Stripe DEVE vir ANTES do express.json()
